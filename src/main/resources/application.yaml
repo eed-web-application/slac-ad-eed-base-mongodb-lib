@@ -1,8 +1,10 @@
 edu:
   stanford:
     slac:
-      mongodb:
-        db_admin_uri: ${BASE_LIB_ADMIN_MONGODB_URI:mongodb://admin:admin@localhost:27017/?authSource=admin}
+      ad:
+        eed:
+          mongodb:
+            db_admin_uri: ${BASE_LIB_ADMIN_MONGODB_URI:mongodb://admin:admin@localhost:27017/?authSource=admin}
 
 spring:
   data:

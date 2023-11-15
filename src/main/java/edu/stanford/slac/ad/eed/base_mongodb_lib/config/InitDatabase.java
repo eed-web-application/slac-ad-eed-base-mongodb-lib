@@ -28,7 +28,7 @@ import java.util.Objects;
 @Configuration
 @EnableMongoAuditing
 @EnableTransactionManagement
-@EnableMongoRepositories(basePackages = "edu.stanford.slac.ad.eed")
+@EnableMongoRepositories(basePackages = "edu.stanford.slac.ad.eed.base_mongodb_lib.repository")
 public class InitDatabase {
     @Value("${spring.data.mongodb.uri}")
     private String mongoAdminUri;
