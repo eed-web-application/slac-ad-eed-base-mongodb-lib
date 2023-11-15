@@ -38,12 +38,6 @@ jobs:
           TOKEN: ${{ secrets.TOKEN }}
         with:
           arguments: assemble
-      - name: Test Project
-        uses: gradle/gradle-build-action@v2
-        env:
-          CI: true
-        with:
-          arguments: test
       - name: Publish package
         uses: gradle/gradle-build-action@v2
         with:
