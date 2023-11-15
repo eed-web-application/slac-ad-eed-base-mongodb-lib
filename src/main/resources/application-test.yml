@@ -1,0 +1,22 @@
+spring:
+  ldap:
+    embedded:
+      base-dn: dc=sdf,dc=slac,dc=stanford,dc=edu
+      ldif: classpath:test-ldap-schema.ldif
+      port: 8389
+      validation:
+        enabled: false
+  cache:
+    type: none
+edu:
+  stanford:
+    slac:
+      root-user-list:
+        - user1@slac.stanford.edu
+      app-token-jwt-key: dabd148ddd89bf64236b3c2563a54921d95c959dbe6a872be3eefaa2f284a4cb
+#          - name: test
+#            expiration: '2023-12-31'
+# Set the logging level for the entire MongoDB package
+#logging:
+#    level:
+#      org.springframework.data.mongodb: DEBUG

@@ -6,10 +6,12 @@ import com.mongodb.MongoClientSettings;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
+import edu.stanford.slac.ad.eed.baselib.config.AppProperties;
 import lombok.AllArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.mongo.MongoProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -30,9 +32,8 @@ import java.util.Objects;
 @EnableTransactionManagement
 @EnableMongoRepositories(basePackages = "edu.stanford.slac.ad.eed.base_mongodb_lib.repository")
 public class InitDatabase {
-    @Value("${spring.data.mongodb.uri}")
-    private String mongoAdminUri;
-    private final MongoDBProperties appProperties;
+    private MongoProperties mongoProperties;
+    private final MongoDBProperties mongoDBProperties;
 
     @Bean
     @Primary
@@ -42,7 +43,7 @@ public class InitDatabase {
 
     @Bean
     public MongoClient mongoAdmin() {
-        ConnectionString adminConnectionString = new ConnectionString(appProperties.getDbAdminUri());
+        ConnectionString adminConnectionString = new ConnectionString(mongoDBProperties.getDbAdminUri());
         MongoClientSettings mongoClientSettings = MongoClientSettings.builder()
                 .applyConnectionString(adminConnectionString)
                 .applicationName("elog-plus-admin")
@@ -52,7 +53,7 @@ public class InitDatabase {
 
     @Bean
     public MongoDatabaseFactory mongoDbFactory() {
-        ConnectionString connectionString = new ConnectionString(mongoAdminUri);
+        ConnectionString connectionString = new ConnectionString(mongoProperties.getUri());
 
         // ensure database and user
         createApplicationUser(mongoAdmin(), connectionString);
