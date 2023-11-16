@@ -1,0 +1,57 @@
+name: MergeCheck
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+    branches:
+      - main
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Build project
+        uses: gradle/gradle-build-action@v2
+        env:
+          CI: true
+          USERNAME: ${{ secrets.USERNAME }}
+          TOKEN: ${{ secrets.TOKEN }}
+        with:
+          arguments: assemble
+      - name: Check for docker-compose.yml file
+        uses: andstor/file-existence-action@v2
+        id: check_files
+        with:
+          files: "docker-compose.yml"
+      - name: Launch test backend
+        if: steps.check_files.outputs.files_exists == 'true'
+        run: |
+          docker compose -f docker-compose.yml up -d
+          sleep 5
+      - name: Test Project
+        uses: gradle/gradle-build-action@v2
+        env:
+          CI: true
+        with:
+          arguments: test
+      - name: Shutdown test backend
+        if: steps.check_files.outputs.files_exists == 'true' &&  (success() || failure())
+        run: |
+          docker compose -f docker-compose.yml logs
+          docker compose -f docker-compose.yml down -v
+      - name: Add coverage to PR
+        id: jacoco
+        uses: madrapps/jacoco-report@v1.6.1
+        with:
+          paths: ${{ github.workspace }}/build/coverage/test/jacocoTestReport.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          min-coverage-overall: 30
+          min-coverage-changed-files: 60

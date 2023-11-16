@@ -27,15 +27,61 @@ repositories {
 }
 
 dependencies {
-    implementation 'edu.stanford.slac:slac-ad-eed-baselib:0.1.8'
-    implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-}
+    implementation 'org.springframework.boot:spring-boot-starter-web',
+                    'edu.stanford.slac:slac-ad-eed-baselib:0.1.15',
+                    'org.mapstruct:mapstruct:1.5.3.Final',
+                    'com.fasterxml.jackson.core:jackson-databind',
+                    'org.springframework.boot:spring-boot-starter-data-mongodb'
+    // mongock
+    implementation 'io.mongock:mongock-bom:5.3.1',
+            'io.mongock:mongock-springboot-v3:5.3.1',
+            'io.mongock:mongodb-springdata-v4-driver:5.3.1'
 
-tasks.named('bootBuildImage') {
-    builder = 'paketobuildpacks/builder-jammy-base:latest'
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.3.Final'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test',
+            'org.springframework.boot:spring-boot-starter-data-ldap',
+            'com.unboundid:unboundid-ldapsdk:6.0.8'
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+jacoco {
+    reportsDirectory = layout.buildDirectory.dir('coverage')
+}
+
+test {
+    finalizedBy jacocoTestReport // report is always generated after tests run
+}
+
+jacocoTestReport {
+    dependsOn test // tests are required to run before generating the report
+    reports {
+        xml.required = true
+        csv.required = true
+        html.required = true
+    }
+}
+
+testlogger {
+    theme 'standard'
+    showExceptions true
+    showStackTraces true
+    showFullStackTraces false
+    showCauses true
+    slowThreshold 2000
+    showSummary true
+    showSimpleNames false
+    showPassed true
+    showSkipped true
+    showFailed true
+    showOnlySlow false
+    showStandardStreams false
+    showPassedStandardStreams true
+    showSkippedStandardStreams true
+    showFailedStandardStreams true
+    logLevel 'lifecycle'
 }
