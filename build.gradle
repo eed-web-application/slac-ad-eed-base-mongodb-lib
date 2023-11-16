@@ -36,10 +36,6 @@ dependencies {
                     'org.mapstruct:mapstruct:1.5.3.Final',
                     'com.fasterxml.jackson.core:jackson-databind',
                     'org.springframework.boot:spring-boot-starter-data-mongodb'
-    // mongock
-    implementation 'io.mongock:mongock-bom:5.3.1',
-            'io.mongock:mongock-springboot-v3:5.3.1',
-            'io.mongock:mongodb-springdata-v4-driver:5.3.1'
 
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
