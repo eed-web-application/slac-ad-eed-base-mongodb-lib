@@ -118,7 +118,7 @@ public class AuthServiceImpl extends AuthService {
             String resourcePrefix,
             Optional<Boolean> allHigherAuthOnSameResource
     ) {
-        boolean isAppToken = appProperties.isAppTokenEmail(owner);
+        boolean isAppToken = appProperties.isAuthenticationToken(owner);
         // get user authorizations
         List<AuthorizationDTO> allAuth = new ArrayList<>(
                 wrapCatch(
@@ -502,7 +502,7 @@ public class AuthServiceImpl extends AuthService {
      * @param email that identify the user
      */
     public void removeRootAuthorization(String email) {
-        boolean isAppToken = appProperties.isAppTokenEmail(email);
+        boolean isAppToken = appProperties.isAuthenticationToken(email);
         if (isAppToken) {
             // check if the authentication token exists before remove
             var authenticationTokenFound = authenticationTokenRepository
