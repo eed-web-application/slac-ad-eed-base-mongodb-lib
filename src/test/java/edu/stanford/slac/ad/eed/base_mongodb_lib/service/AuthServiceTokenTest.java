@@ -1,5 +1,7 @@
-package edu.stanford.slac.ad.eed.base_mongodb_lib.repository;
+package edu.stanford.slac.ad.eed.base_mongodb_lib.service;
 
+import edu.stanford.slac.ad.eed.base_mongodb_lib.repository.AuthenticationTokenRepository;
+import edu.stanford.slac.ad.eed.base_mongodb_lib.repository.AuthorizationRepository;
 import edu.stanford.slac.ad.eed.baselib.api.v1.dto.AuthenticationTokenDTO;
 import edu.stanford.slac.ad.eed.baselib.api.v1.dto.NewAuthenticationTokenDTO;
 import edu.stanford.slac.ad.eed.baselib.config.AppProperties;

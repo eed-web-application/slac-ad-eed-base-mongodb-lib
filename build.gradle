@@ -9,10 +9,14 @@ plugins {
 }
 
 group = 'edu.stanford.slac'
-version = '0.0.1-SNAPSHOT'
+version = '0.0.1'
+def javaSourceCompatibility = JavaVersion.VERSION_21
+def javaTargetCompatibility = JavaVersion.VERSION_21
 
 java {
-    sourceCompatibility = '21'
+    sourceCompatibility = javaSourceCompatibility
+    targetCompatibility = javaTargetCompatibility
+
 }
 
 repositories {
@@ -28,7 +32,7 @@ repositories {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web',
-                    'edu.stanford.slac:slac-ad-eed-baselib:0.1.15',
+                    'edu.stanford.slac:slac-ad-eed-baselib:0.1.19',
                     'org.mapstruct:mapstruct:1.5.3.Final',
                     'com.fasterxml.jackson.core:jackson-databind',
                     'org.springframework.boot:spring-boot-starter-data-mongodb'
