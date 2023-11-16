@@ -12,6 +12,7 @@ import edu.stanford.slac.ad.eed.baselib.model.Authorization;
 import edu.stanford.slac.ad.eed.baselib.service.AuthService;
 import edu.stanford.slac.ad.eed.baselib.service.PeopleGroupService;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +31,8 @@ import static edu.stanford.slac.ad.eed.baselib.utility.StringUtilities.tokenName
 @Log4j2
 @Service
 public class AuthServiceImpl extends AuthService {
+    @Value("${spring.application.name}")
+    private String appName;
     private final JWTHelper jwtHelper;
 
     private final AuthMapper authMapper;
@@ -115,7 +118,7 @@ public class AuthServiceImpl extends AuthService {
             String resourcePrefix,
             Optional<Boolean> allHigherAuthOnSameResource
     ) {
-        boolean isAppToken = isAppTokenEmail(owner);
+        boolean isAppToken = appProperties.isAuthenticationToken(owner);
         // get user authorizations
         List<AuthorizationDTO> allAuth = new ArrayList<>(
                 wrapCatch(
@@ -367,18 +370,18 @@ public class AuthServiceImpl extends AuthService {
 
     @Override
     public void addRootAuthorization(String email, String creator) {
-        boolean isAppToken = isAppTokenEmail(email);
+        boolean isAuthToken = appProperties.isAuthenticationToken(email);
 
         // check fi the user or app token exists
-        if (isAppToken) {
-            // give error in case of a logbook token(it cannot be root
+        if (isAuthToken) {
+            // give error in case of an application wide token(it cannot be root)
             assertion(
                     ControllerLogicException.builder()
                             .errorCode(-1)
-                            .errorMessage("Logbook token cannot became root")
+                            .errorMessage("Application token cannot became root, only global can")
                             .errorDomain("AuthService::addRootAuthorization")
                             .build(),
-                    () ->  !isAppLogbookTokenEmail(email)
+                    () ->  !appProperties.isAppTokenEmail(email)
             );
             // create root for global token
             var authenticationTokenFound = authenticationTokenRepository
@@ -417,7 +420,7 @@ public class AuthServiceImpl extends AuthService {
                                 .builder()
                                 .authorizationType(authMapper.toModel(Admin).getValue())
                                 .owner(email)
-                                .ownerType(isAppToken ? Authorization.OType.Application : Authorization.OType.User)
+                                .ownerType(isAuthToken ? Authorization.OType.Application : Authorization.OType.User)
                                 .resource("*")
                                 .creationBy(creator)
                                 .build()
@@ -433,18 +436,18 @@ public class AuthServiceImpl extends AuthService {
      * @param email the user email
      */
     public void addRootAuthorization(String email, String creator, String appName) {
-        boolean isAppToken = isAppTokenEmail(email);
+        boolean isAuthToken = appProperties.isAuthenticationToken(email);
 
         // check fi the user or app token exists
-        if (isAppToken) {
+        if (isAuthToken) {
             // give error in case of a logbook token(it cannot be root
             assertion(
                     ControllerLogicException.builder()
                             .errorCode(-1)
-                            .errorMessage("Logbook token cannot became root")
+                            .errorMessage("Application specific token cannot became root")
                             .errorDomain("AuthService::addRootAuthorization")
                             .build(),
-                    () ->  email.endsWith(appProperties.getApplicationTokenDomain(appName))
+                    () ->  !appProperties.isAppTokenEmail(email)
             );
             // create root for global token
             var authenticationTokenFound = authenticationTokenRepository
@@ -483,7 +486,7 @@ public class AuthServiceImpl extends AuthService {
                                 .builder()
                                 .authorizationType(authMapper.toModel(Admin).getValue())
                                 .owner(email)
-                                .ownerType(isAppToken ? Authorization.OType.Application : Authorization.OType.User)
+                                .ownerType(isAuthToken ? Authorization.OType.Application : Authorization.OType.User)
                                 .resource("*")
                                 .creationBy(creator)
                                 .build()
@@ -499,7 +502,7 @@ public class AuthServiceImpl extends AuthService {
      * @param email that identify the user
      */
     public void removeRootAuthorization(String email) {
-        boolean isAppToken = isAppTokenEmail(email);
+        boolean isAppToken = appProperties.isAuthenticationToken(email);
         if (isAppToken) {
             // check if the authentication token exists before remove
             var authenticationTokenFound = authenticationTokenRepository
@@ -639,7 +642,7 @@ public class AuthServiceImpl extends AuthService {
     }
 
     private AuthenticationToken getAuthenticationToken(NewAuthenticationTokenDTO newAuthenticationTokenDTO, boolean appManaged) {
-        AuthenticationToken authTok = authMapper.toModelToken(
+        AuthenticationToken authTok = authMapper.toModelGlobalToken(
                 newAuthenticationTokenDTO.toBuilder()
                         .name(
                                 tokenNameNormalization(
@@ -786,9 +789,4 @@ public class AuthServiceImpl extends AuthService {
         );
     }
 
-    public boolean isAppLogbookTokenEmail(String email) {
-        final Pattern pattern = Pattern.compile(appProperties.getLogbookEmailRegex(), Pattern.MULTILINE);
-        final Matcher matcher = pattern.matcher(email);
-        return matcher.matches();
-    }
 }
