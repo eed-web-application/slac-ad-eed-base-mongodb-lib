@@ -12,6 +12,7 @@ import lombok.extern.log4j.Log4j2;
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.mongo.MongoProperties;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -32,6 +33,7 @@ import java.util.Objects;
 @EnableTransactionManagement
 @EnableMongoRepositories(basePackages = "edu.stanford.slac.ad.eed.base_mongodb_lib.repository")
 public class InitDatabase {
+    private ApplicationContext applicationContext;
     private MongoProperties mongoProperties;
     private final MongoDBProperties mongoDBProperties;
 
@@ -46,7 +48,7 @@ public class InitDatabase {
         ConnectionString adminConnectionString = new ConnectionString(mongoDBProperties.getDbAdminUri());
         MongoClientSettings mongoClientSettings = MongoClientSettings.builder()
                 .applyConnectionString(adminConnectionString)
-                .applicationName("elog-plus-admin")
+                .applicationName(applicationContext.getApplicationName())
                 .build();
         return MongoClients.create(mongoClientSettings);
     }
