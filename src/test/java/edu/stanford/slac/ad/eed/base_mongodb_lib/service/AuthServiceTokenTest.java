@@ -9,6 +9,7 @@ import edu.stanford.slac.ad.eed.baselib.exception.AuthenticationTokenMalformed;
 import edu.stanford.slac.ad.eed.baselib.exception.ControllerLogicException;
 import edu.stanford.slac.ad.eed.baselib.model.AuthenticationToken;
 import edu.stanford.slac.ad.eed.baselib.model.Authorization;
+import edu.stanford.slac.ad.eed.baselib.model.AuthorizationOwnerType;
 import edu.stanford.slac.ad.eed.baselib.service.AuthService;
 import org.assertj.core.api.AssertionsForClassTypes;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @ExtendWith(MockitoExtension.class)
 @ActiveProfiles({"test"})
-@EnableLdapRepositories(basePackages = "edu.stanford.slac.ad.eed.baselib.repository")
+//@EnableLdapRepositories(basePackages = "edu.stanford.slac.ad.eed.baselib.repository")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class AuthServiceTokenTest {
     @Autowired
@@ -197,7 +198,7 @@ public class AuthServiceTokenTest {
                                 .authorizationType(Read.getValue())
                                 .resource("r1")
                                 .owner(newAuthToken1.email())
-                                .ownerType(Authorization.OType.Application)
+                                .ownerType(AuthorizationOwnerType.Token)
                                 .build()
                 )
         );
@@ -238,7 +239,7 @@ public class AuthServiceTokenTest {
                                 .authorizationType(Read.getValue())
                                 .resource("r1")
                                 .owner(newAuthToken1.email())
-                                .ownerType(Authorization.OType.Application)
+                                .ownerType(AuthorizationOwnerType.Token)
                                 .build()
                 )
         );

@@ -18,8 +18,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.PropertySource;
-import org.springframework.data.ldap.repository.config.EnableLdapRepositories;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.test.annotation.DirtiesContext;
@@ -30,7 +28,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
-import static edu.stanford.slac.ad.eed.baselib.utility.StringUtilities.tokenNameNormalization;
+import static edu.stanford.slac.ad.eed.baselib.utility.StringUtilities.normalizeStringWithReplace;
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -39,11 +37,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @SpringBootTest()
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@PropertySource("classpath:application.yml")
+//@PropertySource("classpath:application.yml")
 @ExtendWith(MockitoExtension.class)
 @ActiveProfiles({"test"})
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
-@EnableLdapRepositories(basePackages = "edu.stanford.slac.ad.eed.baselib.repository")
+//@EnableLdapRepositories(basePackages = "edu.stanford.slac.ad.eed.baselib.repository")
 public class AuthControllerTest {
     @Autowired
     private MockMvc mockMvc;
@@ -635,13 +633,13 @@ public class AuthControllerTest {
 
     public String getTokenEmailForGlobalToken(String tokenName) {
         return "%s@%s".formatted(
-                tokenNameNormalization(tokenName),
+                normalizeStringWithReplace(tokenName," ", "-"),
                 appProperties.getAuthenticationTokenDomain());
     }
 
     public String getTokenEmailForResourceToken(String tokenName) {
         return "%s@%s".formatted(
-                tokenNameNormalization(tokenName),
+                normalizeStringWithReplace(tokenName," ", "-"),
                 appProperties.getApplicationTokenEmailDomain());
     }
 }
