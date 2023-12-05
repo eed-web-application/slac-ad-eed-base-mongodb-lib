@@ -9,6 +9,7 @@ import edu.stanford.slac.ad.eed.baselib.exception.AuthenticationTokenMalformed;
 import edu.stanford.slac.ad.eed.baselib.exception.ControllerLogicException;
 import edu.stanford.slac.ad.eed.baselib.model.AuthenticationToken;
 import edu.stanford.slac.ad.eed.baselib.model.Authorization;
+import edu.stanford.slac.ad.eed.baselib.model.AuthorizationOwnerType;
 import edu.stanford.slac.ad.eed.baselib.service.AuthService;
 import org.assertj.core.api.AssertionsForClassTypes;
 import org.junit.jupiter.api.BeforeEach;
@@ -197,7 +198,7 @@ public class AuthServiceTokenTest {
                                 .authorizationType(Read.getValue())
                                 .resource("r1")
                                 .owner(newAuthToken1.email())
-                                .ownerType(Authorization.OType.Application)
+                                .ownerType(AuthorizationOwnerType.Token)
                                 .build()
                 )
         );
@@ -238,7 +239,7 @@ public class AuthServiceTokenTest {
                                 .authorizationType(Read.getValue())
                                 .resource("r1")
                                 .owner(newAuthToken1.email())
-                                .ownerType(Authorization.OType.Application)
+                                .ownerType(AuthorizationOwnerType.Token)
                                 .build()
                 )
         );
