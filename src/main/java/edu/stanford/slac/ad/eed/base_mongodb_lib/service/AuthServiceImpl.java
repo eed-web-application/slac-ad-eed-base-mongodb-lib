@@ -6,9 +6,12 @@ import edu.stanford.slac.ad.eed.baselib.api.v1.dto.*;
 import edu.stanford.slac.ad.eed.baselib.api.v1.mapper.AuthMapper;
 import edu.stanford.slac.ad.eed.baselib.auth.JWTHelper;
 import edu.stanford.slac.ad.eed.baselib.config.AppProperties;
-import edu.stanford.slac.ad.eed.baselib.exception.*;
+import edu.stanford.slac.ad.eed.baselib.exception.AuthenticationTokenMalformed;
+import edu.stanford.slac.ad.eed.baselib.exception.AuthenticationTokenNotFound;
+import edu.stanford.slac.ad.eed.baselib.exception.ControllerLogicException;
 import edu.stanford.slac.ad.eed.baselib.model.AuthenticationToken;
 import edu.stanford.slac.ad.eed.baselib.model.Authorization;
+import edu.stanford.slac.ad.eed.baselib.model.AuthorizationOwnerType;
 import edu.stanford.slac.ad.eed.baselib.service.AuthService;
 import edu.stanford.slac.ad.eed.baselib.service.PeopleGroupService;
 import lombok.extern.log4j.Log4j2;
@@ -20,14 +23,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static edu.stanford.slac.ad.eed.baselib.api.v1.dto.AuthorizationTypeDTO.Admin;
 import static edu.stanford.slac.ad.eed.baselib.exception.Utility.assertion;
 import static edu.stanford.slac.ad.eed.baselib.exception.Utility.wrapCatch;
-import static edu.stanford.slac.ad.eed.baselib.utility.StringUtilities.tokenNameNormalization;
+import static edu.stanford.slac.ad.eed.baselib.utility.StringUtilities.normalizeStringWithReplace;
+
 @Log4j2
 @Service
 public class AuthServiceImpl extends AuthService {
@@ -124,7 +126,7 @@ public class AuthServiceImpl extends AuthService {
                 wrapCatch(
                         () -> authorizationRepository.findByOwnerAndOwnerTypeAndAuthorizationTypeIsGreaterThanEqualAndResourceStartingWith(
                                 owner,
-                                isAppToken ? Authorization.OType.Application : Authorization.OType.User,
+                                isAppToken ? AuthorizationOwnerType.Token : AuthorizationOwnerType.User,
                                 authMapper.toModel(authorizationType).getValue(),
                                 resourcePrefix
                         ),
@@ -147,7 +149,7 @@ public class AuthServiceImpl extends AuthService {
                             .map(
                                     g -> authorizationRepository.findByOwnerAndOwnerTypeAndAuthorizationTypeIsGreaterThanEqualAndResourceStartingWith(
                                             g.commonName(),
-                                            Authorization.OType.Group,
+                                            AuthorizationOwnerType.Group,
                                             authMapper.toModel(authorizationType).getValue(),
                                             resourcePrefix
 
@@ -239,7 +241,7 @@ public class AuthServiceImpl extends AuthService {
                                         .builder()
                                         .authorizationType(authMapper.toModel(Admin).getValue())
                                         .owner(userEmail)
-                                        .ownerType(Authorization.OType.User)
+                                        .ownerType(AuthorizationOwnerType.User)
                                         .resource("*")
                                         .creationBy("elog-plus")
                                         .build()
@@ -330,7 +332,7 @@ public class AuthServiceImpl extends AuthService {
                                         .builder()
                                         .authorizationType(authMapper.toModel(Admin).getValue())
                                         .owner(newAuthTok.getEmail())
-                                        .ownerType(Authorization.OType.Application)
+                                        .ownerType(AuthorizationOwnerType.Token)
                                         .resource("*")
                                         .creationBy("elog")
                                         .build()
@@ -420,7 +422,7 @@ public class AuthServiceImpl extends AuthService {
                                 .builder()
                                 .authorizationType(authMapper.toModel(Admin).getValue())
                                 .owner(email)
-                                .ownerType(isAuthToken ? Authorization.OType.Application : Authorization.OType.User)
+                                .ownerType(isAuthToken ? AuthorizationOwnerType.Token : AuthorizationOwnerType.User)
                                 .resource("*")
                                 .creationBy(creator)
                                 .build()
@@ -486,7 +488,7 @@ public class AuthServiceImpl extends AuthService {
                                 .builder()
                                 .authorizationType(authMapper.toModel(Admin).getValue())
                                 .owner(email)
-                                .ownerType(isAuthToken ? Authorization.OType.Application : Authorization.OType.User)
+                                .ownerType(isAuthToken ? AuthorizationOwnerType.Token : AuthorizationOwnerType.User)
                                 .resource("*")
                                 .creationBy(creator)
                                 .build()
@@ -559,6 +561,36 @@ public class AuthServiceImpl extends AuthService {
                 .toList();
     }
 
+    @Override
+    public String addNewAuthorization(NewAuthorizationDTO newAuthorizationDTO) {
+        var result = wrapCatch(
+                () -> authorizationRepository.save(authMapper.toModel(newAuthorizationDTO)),
+                -1,
+                "AuthService::addNewAuthorization"
+        );
+        return result.getId();
+    }
+
+    @Override
+    public void deleteAuthorizationById(String authorizationId) {
+        wrapCatch(
+                () -> {authorizationRepository.deleteById(authorizationId); return null;},
+                -1,
+                "AuthService::deleteAuthorizationById"
+        );
+    }
+
+    @Override
+    public List<AuthorizationDTO> findByResourceIs(String resource) {
+        return wrapCatch(
+                () -> authorizationRepository.findByResourceIs(resource),
+                -1,
+                "AuthService::findByResourceIs"
+        ).stream().map(
+                authMapper::fromModel
+        ).toList();
+    }
+
     /**
      * Ensure token
      *
@@ -573,8 +605,10 @@ public class AuthServiceImpl extends AuthService {
         if (token.isPresent()) return token.get().getId();
 
         authenticationToken.setName(
-                tokenNameNormalization(
-                        authenticationToken.getName()
+                normalizeStringWithReplace(
+                        authenticationToken.getName(),
+                        " ",
+                        "-"
                 )
         );
 
@@ -645,8 +679,10 @@ public class AuthServiceImpl extends AuthService {
         AuthenticationToken authTok = authMapper.toModelGlobalToken(
                 newAuthenticationTokenDTO.toBuilder()
                         .name(
-                                tokenNameNormalization(
-                                        newAuthenticationTokenDTO.name()
+                                normalizeStringWithReplace(
+                                        newAuthenticationTokenDTO.name(),
+                                        " ",
+                                        "-"
                                 )
                         )
                         .build()
@@ -787,6 +823,17 @@ public class AuthServiceImpl extends AuthService {
                 -1,
                 "AuthService::deleteAllAuthenticationTokenWithEmailEndWith"
         );
+    }
+
+    @Override
+    public List<AuthenticationTokenDTO> getAuthenticationTokenByEmailEndsWith(String emailPostfix) {
+        return wrapCatch(
+                () -> authenticationTokenRepository.findAllByEmailEndsWith(emailPostfix),
+                -1,
+                "AuthService::getAuthenticationTokenByEmailEndsWith"
+        ).stream().map(
+                authMapper::toTokenDTO
+        ).toList();
     }
 
 }

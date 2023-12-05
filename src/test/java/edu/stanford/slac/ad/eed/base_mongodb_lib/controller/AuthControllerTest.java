@@ -9,6 +9,7 @@ import edu.stanford.slac.ad.eed.baselib.exception.NotAuthorized;
 import edu.stanford.slac.ad.eed.baselib.model.AuthenticationToken;
 import edu.stanford.slac.ad.eed.baselib.model.Authorization;
 import edu.stanford.slac.ad.eed.baselib.service.AuthService;
+import edu.stanford.slac.ad.eed.baselib.utility.StringUtilities;
 import org.assertj.core.api.AssertionsForClassTypes;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,7 +31,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
-import static edu.stanford.slac.ad.eed.baselib.utility.StringUtilities.tokenNameNormalization;
+import static edu.stanford.slac.ad.eed.baselib.utility.StringUtilities.normalizeStringWithReplace;
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -635,13 +636,13 @@ public class AuthControllerTest {
 
     public String getTokenEmailForGlobalToken(String tokenName) {
         return "%s@%s".formatted(
-                tokenNameNormalization(tokenName),
+                normalizeStringWithReplace(tokenName," ", "-"),
                 appProperties.getAuthenticationTokenDomain());
     }
 
     public String getTokenEmailForResourceToken(String tokenName) {
         return "%s@%s".formatted(
-                tokenNameNormalization(tokenName),
+                normalizeStringWithReplace(tokenName," ", "-"),
                 appProperties.getApplicationTokenEmailDomain());
     }
 }

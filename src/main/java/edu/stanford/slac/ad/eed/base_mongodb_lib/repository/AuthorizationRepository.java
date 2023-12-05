@@ -1,6 +1,7 @@
 package edu.stanford.slac.ad.eed.base_mongodb_lib.repository;
 
 import edu.stanford.slac.ad.eed.baselib.model.Authorization;
+import edu.stanford.slac.ad.eed.baselib.model.AuthorizationOwnerType;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 
@@ -14,7 +15,7 @@ public interface AuthorizationRepository extends MongoRepository<Authorization, 
     List<Authorization> findByResourceIs(String resource);
     List<Authorization> findByResourceIsAndAuthorizationTypeIsGreaterThanEqual(String resource, Integer authorizationType);
     //@Query("{ 'owner' : '?0', $or: [{'authorizationType' : { '$gte' : '?1'}, 'resource' : { $regex : \"?2\"}}, {'authorizationType' : 2, resource:'*'}]}")
-    List<Authorization> findByOwnerAndOwnerTypeAndAuthorizationTypeIsGreaterThanEqualAndResourceStartingWith(String owner, Authorization.OType ownerType, Integer authorizationType, String resource);
+    List<Authorization> findByOwnerAndOwnerTypeAndAuthorizationTypeIsGreaterThanEqualAndResourceStartingWith(String owner, AuthorizationOwnerType ownerType, Integer authorizationType, String resource);
     void deleteByOwnerIsAndResourceIsAndAuthorizationTypeIs(String owner, String resource, Integer authorizationType);
     void deleteAllByResourceStartingWith(String resourcePrefix);
     void deleteAllByResourceIs(String resource);
