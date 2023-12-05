@@ -9,7 +9,6 @@ import edu.stanford.slac.ad.eed.baselib.exception.NotAuthorized;
 import edu.stanford.slac.ad.eed.baselib.model.AuthenticationToken;
 import edu.stanford.slac.ad.eed.baselib.model.Authorization;
 import edu.stanford.slac.ad.eed.baselib.service.AuthService;
-import edu.stanford.slac.ad.eed.baselib.utility.StringUtilities;
 import org.assertj.core.api.AssertionsForClassTypes;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,8 +18,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.PropertySource;
-import org.springframework.data.ldap.repository.config.EnableLdapRepositories;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.test.annotation.DirtiesContext;
@@ -40,11 +37,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @SpringBootTest()
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@PropertySource("classpath:application.yml")
+//@PropertySource("classpath:application.yml")
 @ExtendWith(MockitoExtension.class)
 @ActiveProfiles({"test"})
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
-@EnableLdapRepositories(basePackages = "edu.stanford.slac.ad.eed.baselib.repository")
+//@EnableLdapRepositories(basePackages = "edu.stanford.slac.ad.eed.baselib.repository")
 public class AuthControllerTest {
     @Autowired
     private MockMvc mockMvc;

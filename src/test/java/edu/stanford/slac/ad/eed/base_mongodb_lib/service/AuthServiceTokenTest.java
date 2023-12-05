@@ -42,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @ExtendWith(MockitoExtension.class)
 @ActiveProfiles({"test"})
-@EnableLdapRepositories(basePackages = "edu.stanford.slac.ad.eed.baselib.repository")
+//@EnableLdapRepositories(basePackages = "edu.stanford.slac.ad.eed.baselib.repository")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class AuthServiceTokenTest {
     @Autowired
