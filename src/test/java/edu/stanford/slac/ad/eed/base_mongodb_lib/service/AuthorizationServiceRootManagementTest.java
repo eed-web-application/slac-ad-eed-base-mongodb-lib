@@ -418,10 +418,10 @@ public class AuthorizationServiceRootManagementTest {
                 .contains(
                         "user1@slac.stanford.edu",
                         "token-root-a@%s".formatted(
-                                appProperties.getAuthenticationTokenDomain()
+                                appProperties.getAppEmailPostfix()
                         ),
                         "token-root-b@%s".formatted(
-                                appProperties.getAuthenticationTokenDomain()
+                                appProperties.getAppEmailPostfix()
                         )
                 );
 
@@ -442,10 +442,10 @@ public class AuthorizationServiceRootManagementTest {
                 .contains(
                         "user1@slac.stanford.edu",
                         "token-root-a@%s".formatted(
-                                appProperties.getAuthenticationTokenDomain()
+                                appProperties.getAppEmailPostfix()
                         ),
                         "token-root-b@%s".formatted(
-                                appProperties.getAuthenticationTokenDomain()
+                                appProperties.getAppEmailPostfix()
                         )
                 );
 
@@ -476,13 +476,13 @@ public class AuthorizationServiceRootManagementTest {
                         "user1@slac.stanford.edu",
                         "user2@slac.stanford.edu",
                         "token-root-a@%s".formatted(
-                                appProperties.getAuthenticationTokenDomain()
+                                appProperties.getAppEmailPostfix()
                         ),
                         "token-root-b@%s".formatted(
-                                appProperties.getAuthenticationTokenDomain()
+                                appProperties.getAppEmailPostfix()
                         ),
                         "token-root-c@%s".formatted(
-                                appProperties.getAuthenticationTokenDomain()
+                                appProperties.getAppEmailPostfix()
                         )
                 );
         // remove user and token
@@ -505,10 +505,10 @@ public class AuthorizationServiceRootManagementTest {
                 .contains(
                         "user2@slac.stanford.edu",
                         "token-root-b@%s".formatted(
-                                appProperties.getAuthenticationTokenDomain()
+                                appProperties.getAppEmailPostfix()
                         ),
                         "token-root-c@%s".formatted(
-                                appProperties.getAuthenticationTokenDomain()
+                                appProperties.getAppEmailPostfix()
                         )
                 );
     }
