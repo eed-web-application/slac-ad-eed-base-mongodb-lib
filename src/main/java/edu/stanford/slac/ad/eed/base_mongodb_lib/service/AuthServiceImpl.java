@@ -30,6 +30,9 @@ import static edu.stanford.slac.ad.eed.baselib.exception.Utility.assertion;
 import static edu.stanford.slac.ad.eed.baselib.exception.Utility.wrapCatch;
 import static edu.stanford.slac.ad.eed.baselib.utility.StringUtilities.normalizeStringWithReplace;
 
+/**
+ * This class is used to manage root user and root token.
+ */
 @Log4j2
 @Service
 public class AuthServiceImpl extends AuthService {
@@ -43,6 +46,15 @@ public class AuthServiceImpl extends AuthService {
     private final AuthorizationRepository authorizationRepository;
     private final AuthenticationTokenRepository authenticationTokenRepository;
 
+    /**
+     * Constructor
+     * @param jwtHelper the jwt helper
+     * @param authMapper the auth mapper
+     * @param appProperties the app properties
+     * @param peopleGroupService the people group service
+     * @param authorizationRepository the authorization repository
+     * @param authenticationTokenRepository the authentication token repository
+     */
     public AuthServiceImpl(JWTHelper jwtHelper, AuthMapper authMapper ,AppProperties appProperties, PeopleGroupService peopleGroupService, AuthorizationRepository authorizationRepository, AuthenticationTokenRepository authenticationTokenRepository) {
         super(appProperties);
         this.jwtHelper = jwtHelper;
@@ -184,9 +196,10 @@ public class AuthServiceImpl extends AuthService {
         log.info("Find current authorizations");
         //load actual root
         List<Authorization> currentRootUser = wrapCatch(
-                () -> authorizationRepository.findByResourceIsAndAuthorizationTypeIsGreaterThanEqual(
+                () -> authorizationRepository.findByResourceIsAndAuthorizationTypeIsGreaterThanEqualAndOwnerTypeIs(
                         "*",
-                        authMapper.toModel(Admin).getValue()
+                        authMapper.toModel(Admin).getValue(),
+                        AuthorizationOwnerType.User
                 ),
                 -1,
                 "AuthService::updateRootUser"
@@ -256,7 +269,7 @@ public class AuthServiceImpl extends AuthService {
     }
 
     /**
-     *
+     * Update all configured root token
      */
     @Transactional
     public void updateAutoManagedRootToken() {
@@ -334,7 +347,7 @@ public class AuthServiceImpl extends AuthService {
                                         .owner(newAuthTok.getEmail())
                                         .ownerType(AuthorizationOwnerType.Token)
                                         .resource("*")
-                                        .creationBy("elog")
+                                        .creationBy(appName)
                                         .build()
                         ),
                         -7,

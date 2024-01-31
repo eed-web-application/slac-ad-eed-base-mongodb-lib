@@ -6,13 +6,14 @@ import lombok.Builder;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
 
-
+/**
+ * This class is used to manage root user and root token.
+ */
 @Log4j2
 @Builder
 @AllArgsConstructor
 public class RootAuthorizationManagement extends MongoDDLOps {
     private final AuthService authService;
-
     public void updateRootAuthorization() {
         try {
             log.info("Start managing root user");

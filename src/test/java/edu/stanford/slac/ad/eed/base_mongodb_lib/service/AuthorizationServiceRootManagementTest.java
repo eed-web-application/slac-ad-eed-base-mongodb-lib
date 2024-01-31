@@ -379,4 +379,137 @@ public class AuthorizationServiceRootManagementTest {
         );
         assertThat(allTokenFound).hasSize(2);
     }
+
+    @Test
+    public void manageUserAndToken(){
+        appProperties.getRootAuthenticationTokenList().clear();
+        appProperties.getRootAuthenticationTokenList().add(
+                NewAuthenticationTokenDTO
+                        .builder()
+                        .name("token-root-a")
+                        .expiration(LocalDate.of(3000, 12, 31))
+                        .build()
+        );
+        appProperties.getRootAuthenticationTokenList().add(
+                NewAuthenticationTokenDTO
+                        .builder()
+                        .name("token-root-b")
+                        .expiration(LocalDate.of(3000, 12, 31))
+                        .build()
+        );
+
+        appProperties.getRootUserList().clear();
+        appProperties.getRootUserList().addAll(List.of("user1@slac.stanford.edu"));
+
+        assertDoesNotThrow(()->authService.updateRootUser());
+        assertDoesNotThrow(() -> authService.updateAutoManagedRootToken());
+
+        // check token authorization
+        List<Authorization> rootAuth = assertDoesNotThrow(
+                () -> authorizationRepository.findByResourceIsAndAuthorizationTypeIsGreaterThanEqual(
+                        "*",
+                        Authorization.Type.Admin.getValue()
+                )
+        );
+
+        assertThat(rootAuth).hasSize(3);
+        assertThat(rootAuth)
+                .extracting(Authorization::getOwner)
+                .contains(
+                        "user1@slac.stanford.edu",
+                        "token-root-a@%s".formatted(
+                                appProperties.getAuthenticationTokenDomain()
+                        ),
+                        "token-root-b@%s".formatted(
+                                appProperties.getAuthenticationTokenDomain()
+                        )
+                );
+
+        // re-execute update and all need to be the same
+        assertDoesNotThrow(()->authService.updateRootUser());
+        assertDoesNotThrow(() -> authService.updateAutoManagedRootToken());
+        // check token authorization
+        rootAuth = assertDoesNotThrow(
+                () -> authorizationRepository.findByResourceIsAndAuthorizationTypeIsGreaterThanEqual(
+                        "*",
+                        Authorization.Type.Admin.getValue()
+                )
+        );
+
+        assertThat(rootAuth).hasSize(3);
+        assertThat(rootAuth)
+                .extracting(Authorization::getOwner)
+                .contains(
+                        "user1@slac.stanford.edu",
+                        "token-root-a@%s".formatted(
+                                appProperties.getAuthenticationTokenDomain()
+                        ),
+                        "token-root-b@%s".formatted(
+                                appProperties.getAuthenticationTokenDomain()
+                        )
+                );
+
+        //add user and token
+        appProperties.getRootUserList().add("user2@slac.stanford.edu");
+        appProperties.getRootAuthenticationTokenList().add(
+                NewAuthenticationTokenDTO
+                        .builder()
+                        .name("token-root-c")
+                        .expiration(LocalDate.of(3000, 12, 31))
+                        .build()
+        );
+        // re-execute update and all need to be the same
+        assertDoesNotThrow(()->authService.updateRootUser());
+        assertDoesNotThrow(() -> authService.updateAutoManagedRootToken());
+        // check token authorization
+        rootAuth = assertDoesNotThrow(
+                () -> authorizationRepository.findByResourceIsAndAuthorizationTypeIsGreaterThanEqual(
+                        "*",
+                        Authorization.Type.Admin.getValue()
+                )
+        );
+
+        assertThat(rootAuth).hasSize(5);
+        assertThat(rootAuth)
+                .extracting(Authorization::getOwner)
+                .contains(
+                        "user1@slac.stanford.edu",
+                        "user2@slac.stanford.edu",
+                        "token-root-a@%s".formatted(
+                                appProperties.getAuthenticationTokenDomain()
+                        ),
+                        "token-root-b@%s".formatted(
+                                appProperties.getAuthenticationTokenDomain()
+                        ),
+                        "token-root-c@%s".formatted(
+                                appProperties.getAuthenticationTokenDomain()
+                        )
+                );
+        // remove user and token
+        appProperties.getRootUserList().removeFirst();
+        appProperties.getRootAuthenticationTokenList().removeFirst();
+        // re-execute update and all need to be the same
+        assertDoesNotThrow(()->authService.updateRootUser());
+        assertDoesNotThrow(() -> authService.updateAutoManagedRootToken());
+        // check token authorization
+        rootAuth = assertDoesNotThrow(
+                () -> authorizationRepository.findByResourceIsAndAuthorizationTypeIsGreaterThanEqual(
+                        "*",
+                        Authorization.Type.Admin.getValue()
+                )
+        );
+
+        assertThat(rootAuth).hasSize(3);
+        assertThat(rootAuth)
+                .extracting(Authorization::getOwner)
+                .contains(
+                        "user2@slac.stanford.edu",
+                        "token-root-b@%s".formatted(
+                                appProperties.getAuthenticationTokenDomain()
+                        ),
+                        "token-root-c@%s".formatted(
+                                appProperties.getAuthenticationTokenDomain()
+                        )
+                );
+    }
 }
