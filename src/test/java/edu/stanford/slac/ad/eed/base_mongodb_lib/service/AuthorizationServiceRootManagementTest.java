@@ -498,7 +498,6 @@ public class AuthorizationServiceRootManagementTest {
                         Authorization.Type.Admin.getValue()
                 )
         );
-
         assertThat(rootAuth).hasSize(3);
         assertThat(rootAuth)
                 .extracting(Authorization::getOwner)
