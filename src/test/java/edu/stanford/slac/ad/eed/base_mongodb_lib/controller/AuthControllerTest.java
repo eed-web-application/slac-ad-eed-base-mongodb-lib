@@ -640,6 +640,6 @@ public class AuthControllerTest {
     public String getTokenEmailForResourceToken(String tokenName) {
         return "%s@%s".formatted(
                 normalizeStringWithReplace(tokenName," ", "-"),
-                appProperties.getApplicationTokenEmailDomain());
+                appProperties.getAppEmailPostfix());
     }
 }
