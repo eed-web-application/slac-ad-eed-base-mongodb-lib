@@ -512,4 +512,73 @@ public class AuthorizationServiceRootManagementTest {
                         )
                 );
     }
+
+    @Test
+    public void manageInternalAndNormalAuthenticationToken() {
+        appProperties.getRootAuthenticationTokenList().clear();
+        appProperties.getRootUserList().clear();
+        appProperties.getRootUserList().addAll(List.of("user1@slac.stanford.edu", "service@internal.app-1.slac.app$"));
+        appProperties.getRootAuthenticationTokenList().add(
+                NewAuthenticationTokenDTO
+                        .builder()
+                        .name("token-root-a")
+                        .expiration(LocalDate.of(3000, 12, 31))
+                        .build()
+        );
+        appProperties.getRootAuthenticationTokenList().add(
+                NewAuthenticationTokenDTO
+                        .builder()
+                        .name("token-root-b")
+                        .expiration(LocalDate.of(3000, 12, 31))
+                        .build()
+        );
+        assertDoesNotThrow(() -> authService.updateRootUser());
+        assertDoesNotThrow(() -> authService.updateAutoManagedRootToken());
+
+        // check token authorization
+        List<Authorization> rootAuth = assertDoesNotThrow(
+                () -> authorizationRepository.findByResourceIsAndAuthorizationTypeIsGreaterThanEqual(
+                        "*",
+                        Authorization.Type.Admin.getValue()
+                )
+        );
+
+        assertThat(rootAuth).hasSize(4);
+        assertThat(rootAuth)
+                .extracting(Authorization::getOwner)
+                .contains(
+                        "user1@slac.stanford.edu",
+                        "service@internal.app-1.slac.app$",
+                        "token-root-a@%s".formatted(
+                                appProperties.getAuthenticationTokenDomain()
+                        ),
+                        "token-root-b@%s".formatted(
+                                appProperties.getAuthenticationTokenDomain()
+                        )
+                );
+
+        appProperties.getRootUserList().clear();
+        appProperties.getRootUserList().addAll(List.of("user1@slac.stanford.edu"));
+
+        assertDoesNotThrow(() -> authService.updateRootUser());
+        assertDoesNotThrow(() -> authService.updateAutoManagedRootToken());
+        rootAuth = assertDoesNotThrow(
+                () -> authorizationRepository.findByResourceIsAndAuthorizationTypeIsGreaterThanEqual(
+                        "*",
+                        Authorization.Type.Admin.getValue()
+                )
+        );
+        assertThat(rootAuth).hasSize(3);
+        assertThat(rootAuth)
+                .extracting(Authorization::getOwner)
+                .contains(
+                        "user1@slac.stanford.edu",
+                        "token-root-a@%s".formatted(
+                                appProperties.getAuthenticationTokenDomain()
+                        ),
+                        "token-root-b@%s".formatted(
+                                appProperties.getAuthenticationTokenDomain()
+                        )
+                );
+    }
 }
