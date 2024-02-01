@@ -32,6 +32,7 @@ import java.util.Objects;
 @EnableTransactionManagement
 @EnableMongoRepositories(basePackages = "edu.stanford.slac.ad.eed.base_mongodb_lib.repository")
 public class InitDatabase {
+    private final AppProperties appProperties;
     private MongoProperties mongoProperties;
     private final MongoDBProperties mongoDBProperties;
 
@@ -46,7 +47,7 @@ public class InitDatabase {
         ConnectionString adminConnectionString = new ConnectionString(mongoDBProperties.getDbAdminUri());
         MongoClientSettings mongoClientSettings = MongoClientSettings.builder()
                 .applyConnectionString(adminConnectionString)
-                .applicationName("elog-plus-admin")
+                .applicationName(appProperties.getAppName())
                 .build();
         return MongoClients.create(mongoClientSettings);
     }

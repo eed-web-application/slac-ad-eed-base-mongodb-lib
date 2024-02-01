@@ -48,14 +48,15 @@ public class AuthServiceImpl extends AuthService {
 
     /**
      * Constructor
-     * @param jwtHelper the jwt helper
-     * @param authMapper the auth mapper
-     * @param appProperties the app properties
-     * @param peopleGroupService the people group service
-     * @param authorizationRepository the authorization repository
+     *
+     * @param jwtHelper                     the jwt helper
+     * @param authMapper                    the auth mapper
+     * @param appProperties                 the app properties
+     * @param peopleGroupService            the people group service
+     * @param authorizationRepository       the authorization repository
      * @param authenticationTokenRepository the authentication token repository
      */
-    public AuthServiceImpl(JWTHelper jwtHelper, AuthMapper authMapper ,AppProperties appProperties, PeopleGroupService peopleGroupService, AuthorizationRepository authorizationRepository, AuthenticationTokenRepository authenticationTokenRepository) {
+    public AuthServiceImpl(JWTHelper jwtHelper, AuthMapper authMapper, AppProperties appProperties, PeopleGroupService peopleGroupService, AuthorizationRepository authorizationRepository, AuthenticationTokenRepository authenticationTokenRepository) {
         super(appProperties);
         this.jwtHelper = jwtHelper;
         this.authMapper = authMapper;
@@ -205,6 +206,21 @@ public class AuthServiceImpl extends AuthService {
                 "AuthService::updateRootUser"
         );
 
+        currentRootUser.addAll(
+                wrapCatch(
+                        () -> authorizationRepository.findByResourceIsAndAuthorizationTypeIsGreaterThanEqualAndOwnerTypeIs(
+                                "*",
+                                authMapper.toModel(Admin).getValue(),
+                                AuthorizationOwnerType.Token
+                        ),
+                        -2,
+                        "AuthService::updateRootUser"
+                ).stream().filter(
+                        // add also the internal service token that are root
+                        auth -> appProperties.isServiceInternalTokenEmail(auth.getOwner())
+                ).toList()
+        );
+
         // find root users to remove
         List<String> rootUserToRemove = currentRootUser.stream().map(
                 Authorization::getOwner
@@ -215,6 +231,7 @@ public class AuthServiceImpl extends AuthService {
                         "AuthService::updateRootUser"
                 )
         ).toList();
+
         for (String userEmailToRemove :
                 rootUserToRemove) {
             log.info("Remove root authorizations: {}", userEmailToRemove);
@@ -248,15 +265,16 @@ public class AuthServiceImpl extends AuthService {
             );
             if (rootAuth.isEmpty()) {
                 log.info("Create root authorizations for user '{}'", userEmail);
+                var isServiceInternalEmail = appProperties.isServiceInternalTokenEmail(userEmail);
                 wrapCatch(
                         () -> authorizationRepository.save(
                                 Authorization
                                         .builder()
                                         .authorizationType(authMapper.toModel(Admin).getValue())
                                         .owner(userEmail)
-                                        .ownerType(AuthorizationOwnerType.User)
+                                        .ownerType(isServiceInternalEmail ? AuthorizationOwnerType.Token : AuthorizationOwnerType.User)
                                         .resource("*")
-                                        .creationBy("elog-plus")
+                                        .creationBy(appProperties.getAppName())
                                         .build()
                         ),
                         -2,
@@ -285,11 +303,14 @@ public class AuthServiceImpl extends AuthService {
                     -2,
                     "AuthService::updateAutoManagedRootToken"
             );
-            for (AuthenticationToken authToken:
+            for (AuthenticationToken authToken :
                     foundAuthenticationTokens) {
 
                 wrapCatch(
-                        ()->{authorizationRepository.deleteAllByOwnerIs(authToken.getEmail()); return null;},
+                        () -> {
+                            authorizationRepository.deleteAllByOwnerIs(authToken.getEmail());
+                            return null;
+                        },
                         -3,
                         "AuthService::updateAutoManagedRootToken"
                 );
@@ -306,7 +327,10 @@ public class AuthServiceImpl extends AuthService {
                 );
             }
             wrapCatch(
-                    () -> {authenticationTokenRepository.deleteAllByApplicationManagedIsTrue(); return null;},
+                    () -> {
+                        authenticationTokenRepository.deleteAllByApplicationManagedIsTrue();
+                        return null;
+                    },
                     -4,
                     "AuthService::updateAutoManagedRootToken"
             );
@@ -339,6 +363,7 @@ public class AuthServiceImpl extends AuthService {
                         "AuthService::updateAutoManagedRootToken"
                 );
                 log.info("Created authentication token with name {}", newAuthTok.getName());
+
                 wrapCatch(
                         () -> authorizationRepository.save(
                                 Authorization
@@ -396,7 +421,7 @@ public class AuthServiceImpl extends AuthService {
                             .errorMessage("Application token cannot became root, only global can")
                             .errorDomain("AuthService::addRootAuthorization")
                             .build(),
-                    () ->  !appProperties.isAppTokenEmail(email)
+                    () -> !appProperties.isAppTokenEmail(email)
             );
             // create root for global token
             var authenticationTokenFound = authenticationTokenRepository
@@ -462,7 +487,7 @@ public class AuthServiceImpl extends AuthService {
                             .errorMessage("Application specific token cannot became root")
                             .errorDomain("AuthService::addRootAuthorization")
                             .build(),
-                    () ->  !appProperties.isAppTokenEmail(email)
+                    () -> !appProperties.isAppTokenEmail(email)
             );
             // create root for global token
             var authenticationTokenFound = authenticationTokenRepository
@@ -587,7 +612,10 @@ public class AuthServiceImpl extends AuthService {
     @Override
     public void deleteAuthorizationById(String authorizationId) {
         wrapCatch(
-                () -> {authorizationRepository.deleteById(authorizationId); return null;},
+                () -> {
+                    authorizationRepository.deleteById(authorizationId);
+                    return null;
+                },
                 -1,
                 "AuthService::deleteAuthorizationById"
         );
@@ -639,9 +667,11 @@ public class AuthServiceImpl extends AuthService {
         );
         return newToken.getId();
     }
+
     public AuthenticationTokenDTO addNewAuthenticationToken(NewAuthenticationTokenDTO newAuthenticationTokenDTO) {
         return addNewAuthenticationToken(newAuthenticationTokenDTO, false);
     }
+
     /**
      * Add a new authentication token
      *
@@ -809,6 +839,7 @@ public class AuthServiceImpl extends AuthService {
 
     /**
      * Return the authentication token by email
+     *
      * @param email the email of the authentication token to return
      * @return the authentication token found
      */
