@@ -311,7 +311,7 @@ public class AuthControllerTest {
                         getTokenEmailForGlobalToken("token-root-a")
                 )
         );
-        AssertionsForClassTypes.assertThat(notAuthorizedOnAppManagedToken.getErrorCode()).isEqualTo(-1);
+        AssertionsForClassTypes.assertThat(notAuthorizedOnAppManagedToken.getErrorCode()).isEqualTo(-3);
     }
 
     @Test
@@ -509,7 +509,7 @@ public class AuthControllerTest {
                 )
         );
 
-        AssertionsForClassTypes.assertThat(tokenNotFoundException.getErrorCode()).isEqualTo(-1);
+        AssertionsForClassTypes.assertThat(tokenNotFoundException.getErrorCode()).isEqualTo(-2);
     }
 
     @Test
