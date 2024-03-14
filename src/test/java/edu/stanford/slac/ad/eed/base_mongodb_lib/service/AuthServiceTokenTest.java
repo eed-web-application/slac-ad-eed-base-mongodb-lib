@@ -65,6 +65,42 @@ public class AuthServiceTokenTest {
     }
 
     @Test
+    public void createGlobalToken(){
+        AuthenticationTokenDTO newAuthToken = assertDoesNotThrow(
+                () -> authService.addNewAuthenticationToken(
+                        NewAuthenticationTokenDTO
+                                .builder()
+                                .name("token-a")
+                                .expiration(LocalDate.of(2023,12,31))
+                                .build(),
+                        true
+                )
+        );
+
+        assertThat(newAuthToken).isNotNull();
+        assertThat(newAuthToken.id()).isNotNull().isNotEmpty();
+        assertThat(newAuthToken.email()).isEqualTo("token-a@%s".formatted(appProperties.getAuthenticationTokenDomain()));
+    }
+
+    @Test
+    public void createApplicationToken(){
+        AuthenticationTokenDTO newAuthToken = assertDoesNotThrow(
+                () -> authService.addNewApplicationAuthenticationToken(
+                        NewAuthenticationTokenDTO
+                                .builder()
+                                .name("token-a")
+                                .expiration(LocalDate.of(2023,12,31))
+                                .build(),
+                        true
+                )
+        );
+
+        assertThat(newAuthToken).isNotNull();
+        assertThat(newAuthToken.id()).isNotNull().isNotEmpty();
+        assertThat(newAuthToken.email()).isEqualTo("token-a@%s".formatted(appProperties.getAppEmailPostfix()));
+    }
+
+    @Test
     public void createTokenFailsOnMalformed() {
         AuthenticationTokenMalformed malformedException = assertThrows(
                 AuthenticationTokenMalformed.class,
