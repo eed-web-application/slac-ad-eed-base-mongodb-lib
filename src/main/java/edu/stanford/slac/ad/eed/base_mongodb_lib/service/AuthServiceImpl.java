@@ -438,7 +438,7 @@ public class AuthServiceImpl extends AuthService {
         } else {
             // find the user
             assertion(
-                    ()->peopleGroupService.findPersonByEMail(email)!=null,
+                    () -> peopleGroupService.findPersonByEMail(email) != null,
                     PersonNotFound.personNotFoundBuilder()
                             .errorCode(-4)
                             .errorDomain("AuthService::addRootAuthorization")
@@ -510,7 +510,7 @@ public class AuthServiceImpl extends AuthService {
         } else {
             // find the user
             assertion(
-                    ()->peopleGroupService.findPersonByEMail(email)!=null,
+                    () -> peopleGroupService.findPersonByEMail(email) != null,
                     PersonNotFound.personNotFoundBuilder()
                             .errorCode(-4)
                             .errorDomain("AuthService::addRootAuthorization")
@@ -602,6 +602,29 @@ public class AuthServiceImpl extends AuthService {
                         authMapper::fromModel
                 )
                 .toList();
+    }
+
+    @Override
+    public String updateAuthorizationType(String authorizationId, AuthorizationTypeDTO authorizationTypeDTO) {
+        var foundAuthorization = wrapCatch(
+                () -> authorizationRepository.findById(authorizationId)
+                        .orElseThrow(
+                                () -> AuthenticationTokenNotFound.authTokenNotFoundBuilder()
+                                        .errorCode(-1)
+                                        .errorDomain("AuthService::updateAuthorizationType")
+                                        .build()
+                        ),
+                -1
+        );
+
+        var updatedAuthorization = authorizationRepository.save(
+                foundAuthorization.toBuilder()
+                        .authorizationType(
+                                authMapper.toModel(authorizationTypeDTO).getValue()
+                        )
+                        .build()
+        );
+        return updatedAuthorization.getId();
     }
 
     @Override
