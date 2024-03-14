@@ -8,7 +8,7 @@ import org.springframework.data.mongodb.repository.Query;
 import java.util.List;
 import java.util.Optional;
 
-public interface AuthorizationRepository extends MongoRepository<Authorization, String> {
+public interface AuthorizationRepository extends MongoRepository<Authorization, String>, AuthorizationRepositoryCustom {
     /**
      * Find all authorizations for a given owner
      * @param owner owner
