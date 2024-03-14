@@ -741,6 +741,70 @@ public class AuthServiceImpl extends AuthService {
         );
     }
 
+    @Override
+    public AuthenticationTokenDTO addNewApplicationAuthenticationToken(NewAuthenticationTokenDTO newAuthenticationTokenDTO, boolean appManaged) {
+        // check if a token with the same name already exists
+        assertion(
+                AuthenticationTokenMalformed.malformedAuthToken()
+                        .errorCode(-1)
+                        .errorDomain("AuthService::addNewApplicationAuthenticationToken")
+                        .build(),
+                // name well-formed
+                () -> newAuthenticationTokenDTO.name() != null && !newAuthenticationTokenDTO.name().isEmpty(),
+                // expiration well-formed
+                () -> newAuthenticationTokenDTO.expiration() != null
+        );
+
+        assertion(
+                () -> wrapCatch(
+                        () -> !authenticationTokenRepository.existsByName(newAuthenticationTokenDTO.name()),
+                        -2,
+                        "AuthService::addNewApplicationAuthenticationToken"
+                ),
+                ControllerLogicException
+                        .builder()
+                        .errorCode(-3)
+                        .errorMessage("A token with the same name already exists")
+                        .errorDomain("AuthService::addNewApplicationAuthenticationToken")
+                        .build()
+        );
+        // convert to model and normalize the name
+        return authMapper.toTokenDTO(
+                wrapCatch(
+                        () -> authenticationTokenRepository.save(
+                                getApplicationAuthenticationToken(
+                                        newAuthenticationTokenDTO,
+                                        appManaged
+                                )
+                        ),
+                        -4,
+                        "AuthService::addNewAuthenticationToken"
+                )
+        );
+    }
+
+    private AuthenticationToken getApplicationAuthenticationToken(NewAuthenticationTokenDTO newAuthenticationTokenDTO, boolean appManaged) {
+        AuthenticationToken authTok = authMapper.toModelApplicationToken(
+                newAuthenticationTokenDTO.toBuilder()
+                        .name(
+                                normalizeStringWithReplace(
+                                        newAuthenticationTokenDTO.name(),
+                                        " ",
+                                        "-"
+                                )
+                        )
+                        .build()
+        );
+        return authTok.toBuilder()
+                .applicationManaged(appManaged)
+                .token(
+                        jwtHelper.generateAuthenticationToken(
+                                authTok
+                        )
+                )
+                .build();
+    }
+
     private AuthenticationToken getAuthenticationToken(NewAuthenticationTokenDTO newAuthenticationTokenDTO, boolean appManaged) {
         AuthenticationToken authTok = authMapper.toModelGlobalToken(
                 newAuthenticationTokenDTO.toBuilder()

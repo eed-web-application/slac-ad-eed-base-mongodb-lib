@@ -34,7 +34,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-test',
             'org.springframework.boot:spring-boot-starter-web',
             'org.springframework.boot:spring-boot-starter-security',
-            'edu.stanford.slac:slac-ad-eed-baselib:0.1.44',
+            'edu.stanford.slac:slac-ad-eed-baselib:0.1.45',
             'org.mapstruct:mapstruct:1.5.3.Final',
             'com.fasterxml.jackson.core:jackson-databind',
             'org.springframework.boot:spring-boot-starter-data-mongodb'
