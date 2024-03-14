@@ -416,15 +416,6 @@ public class AuthServiceImpl extends AuthService {
 
         // check fi the user or app token exists
         if (isAuthToken) {
-            // give error in case of an application wide token(it cannot be root)
-            assertion(
-                    ControllerLogicException.builder()
-                            .errorCode(-1)
-                            .errorMessage("Application token cannot became root, only global can")
-                            .errorDomain("AuthService::addRootAuthorization")
-                            .build(),
-                    () -> !appProperties.isAppTokenEmail(email)
-            );
             // create root for global token
             var authenticationTokenFound = authenticationTokenRepository
                     .findByEmailIs(email)

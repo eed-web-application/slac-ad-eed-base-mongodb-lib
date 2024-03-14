@@ -483,21 +483,6 @@ public class AuthControllerTest {
     }
 
     @Test
-    public void createAuthTokenAndMakeItRootFailOnApplicationToken() {
-        ControllerLogicException logbookTokenCannotBeRootExcept = assertThrows(
-                ControllerLogicException.class,
-                ()->testControllerHelperService.createNewRootUser(
-                        mockMvc,
-                        status().isInternalServerError(),
-                        Optional.of("user1@slac.stanford.edu"),
-                        getTokenEmailForResourceToken("token-a")
-                )
-        );
-
-        AssertionsForClassTypes.assertThat(logbookTokenCannotBeRootExcept.getErrorCode()).isEqualTo(-1);
-    }
-
-    @Test
     public void createAuthTokenAndMakItRootFailOnNotExistingGlobalToken() {
         AuthenticationTokenNotFound tokenNotFoundException = assertThrows(
                 AuthenticationTokenNotFound.class,
