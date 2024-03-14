@@ -2,6 +2,8 @@ package edu.stanford.slac.ad.eed.base_mongodb_lib.service;
 
 import edu.stanford.slac.ad.eed.base_mongodb_lib.repository.AuthorizationRepository;
 import edu.stanford.slac.ad.eed.baselib.api.v1.dto.AuthorizationDTO;
+import edu.stanford.slac.ad.eed.baselib.api.v1.dto.AuthorizationOwnerTypeDTO;
+import edu.stanford.slac.ad.eed.baselib.api.v1.dto.AuthorizationTypeDTO;
 import edu.stanford.slac.ad.eed.baselib.config.AppProperties;
 import edu.stanford.slac.ad.eed.baselib.model.Authorization;
 import edu.stanford.slac.ad.eed.baselib.service.AuthService;
@@ -19,8 +21,13 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import static edu.stanford.slac.ad.eed.baselib.api.v1.dto.AuthorizationTypeDTO.*;
 import static edu.stanford.slac.ad.eed.baselib.model.AuthorizationOwnerType.Group;
@@ -273,6 +280,41 @@ public class AuthorizationLogicTest {
                 .contains(
                         "user4@slac.stanford.edu"
                 );
+    }
+
+    @Test
+    public void testEnsureAuthorizationMultipleThread() {
+        int numberOfThreads = 20; // Number of concurrent threads
+        List<Future<String>> futures;
+        try (ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads)) {
+            List<Callable<String>> tasks = new ArrayList<>();
+            AuthorizationDTO authorizationDTO = AuthorizationDTO
+                    .builder()
+                    .owner("owner")
+                    .authorizationType(Read)
+                    .resource("/r1")
+                    .ownerType(AuthorizationOwnerTypeDTO.User)
+                    .build();
+
+            for (int i = 0; i < numberOfThreads*10; i++) {
+                tasks.add(() -> authService.ensureAuthorization(authorizationDTO));
+            }
+
+            futures = assertDoesNotThrow(()->executorService.invokeAll(tasks));
+
+            // Shut down the executor service
+            executorService.shutdown();
+        }
+
+        // Assert that all threads received the same ID
+        String expectedId = null;
+        for (Future<String> future : futures) {
+            String id = assertDoesNotThrow(()->future.get());
+            if (expectedId == null) {
+                expectedId = id; // Set the expected ID from the first thread
+            }
+            assertThat(id).isEqualTo(expectedId);
+        }
     }
 
     static private class AuthorizationIs extends Condition<String> {

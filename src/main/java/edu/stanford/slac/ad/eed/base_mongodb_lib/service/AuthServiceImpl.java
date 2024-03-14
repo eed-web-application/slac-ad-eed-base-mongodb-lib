@@ -36,6 +36,7 @@ import static edu.stanford.slac.ad.eed.baselib.utility.StringUtilities.normalize
  */
 @Log4j2
 @Service
+
 public class AuthServiceImpl extends AuthService {
     @Value("${spring.application.name}")
     private String appName;
@@ -610,6 +611,15 @@ public class AuthServiceImpl extends AuthService {
                         authMapper::fromModel
                 )
                 .toList();
+    }
+
+    @Override
+    public String ensureAuthorization(AuthorizationDTO authorizationDTO) {
+        return wrapCatch(
+                () -> authorizationRepository.ensureAuthorization(authMapper.toModel(authorizationDTO)),
+                -1,
+                "AuthService::addNewAuthorization"
+        );
     }
 
     @Override

@@ -31,11 +31,13 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-web',
-                    'edu.stanford.slac:slac-ad-eed-baselib:0.1.42',
-                    'org.mapstruct:mapstruct:1.5.3.Final',
-                    'com.fasterxml.jackson.core:jackson-databind',
-                    'org.springframework.boot:spring-boot-starter-data-mongodb'
+    implementation 'org.springframework.boot:spring-boot-starter-test',
+            'org.springframework.boot:spring-boot-starter-web',
+            'org.springframework.boot:spring-boot-starter-security',
+            'edu.stanford.slac:slac-ad-eed-baselib:0.1.44',
+            'org.mapstruct:mapstruct:1.5.3.Final',
+            'com.fasterxml.jackson.core:jackson-databind',
+            'org.springframework.boot:spring-boot-starter-data-mongodb'
 
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
