@@ -371,7 +371,7 @@ public class AuthorizationLogicTest {
         );
 
         assertDoesNotThrow(
-                () -> authService.deleteAuthorizationForResourcePrefix("/r1", "user2@slac.stanford.edu", User)
+                () -> authService.deleteAuthorizationForResourcePrefix("/r1", "user2@slac.stanford.edu", AuthorizationOwnerTypeDTO.User)
         );
 
         var authorization = assertDoesNotThrow(

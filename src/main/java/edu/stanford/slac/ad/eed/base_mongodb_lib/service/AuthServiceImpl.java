@@ -87,13 +87,14 @@ public class AuthServiceImpl extends AuthService {
     }
 
     @Override
-    public void deleteAuthorizationForResourcePrefix(String resourcePrefix, String ownerId, AuthorizationOwnerType ownerType) {
+    public void deleteAuthorizationForResourcePrefix(String resourcePrefix, String ownerId, AuthorizationOwnerTypeDTO ownerType) {
+        ;
         wrapCatch(
                 () -> {
                     authorizationRepository.deleteAllByResourceStartingWithAndOwnerIsAndOwnerTypeIs(
                             resourcePrefix,
                             ownerId,
-                            ownerType
+                            authMapper.toModel(ownerType)
                     );
                     return null;
                 },
