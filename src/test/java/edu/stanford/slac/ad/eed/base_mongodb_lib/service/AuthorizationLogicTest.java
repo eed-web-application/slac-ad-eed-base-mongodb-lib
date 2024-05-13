@@ -7,7 +7,9 @@ import edu.stanford.slac.ad.eed.baselib.api.v1.dto.AuthorizationTypeDTO;
 import edu.stanford.slac.ad.eed.baselib.config.AppProperties;
 import edu.stanford.slac.ad.eed.baselib.model.Authorization;
 import edu.stanford.slac.ad.eed.baselib.service.AuthService;
+import org.assertj.core.api.AssertionsForClassTypes;
 import org.assertj.core.api.Condition;
+import org.assertj.core.data.Index;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -34,6 +36,7 @@ import static edu.stanford.slac.ad.eed.baselib.model.AuthorizationOwnerType.Grou
 import static edu.stanford.slac.ad.eed.baselib.model.AuthorizationOwnerType.User;
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @AutoConfigureMockMvc
 @SpringBootTest(properties = {})
@@ -501,5 +504,209 @@ public class AuthorizationLogicTest {
         );
 
         assertThat(authorization).hasSize(0);
+    }
+
+    @Test
+    public void testFindAuthoriztionForSpecificOwnerOTypeAndResource() {
+        appProperties.getRootUserList().clear();
+        Authorization newAuthUser1 = assertDoesNotThrow(
+                () -> authorizationRepository.save(
+                        Authorization.builder()
+                                .authorizationType(Authorization.Type.Read.getValue())
+                                .owner("user1@slac.stanford.edu")
+                                .ownerType(User)
+                                .resource("/r1")
+                                .build()
+                )
+        );
+        Authorization newAuthUser21 = assertDoesNotThrow(
+                () -> authorizationRepository.save(
+                        Authorization.builder()
+                                .authorizationType(Authorization.Type.Write.getValue())
+                                .owner("user2@slac.stanford.edu")
+                                .ownerType(User)
+                                .resource("/r1")
+                                .build()
+                )
+        );
+        Authorization newAuthUser22 = assertDoesNotThrow(
+                () -> authorizationRepository.save(
+                        Authorization.builder()
+                                .authorizationType(Authorization.Type.Read.getValue())
+                                .owner("user2@slac.stanford.edu")
+                                .ownerType(User)
+                                .resource("/r2")
+                                .build()
+                )
+        );
+        Authorization newAuthGroup11 = assertDoesNotThrow(
+                () -> authorizationRepository.save(
+                        Authorization.builder()
+                                .authorizationType(Authorization.Type.Admin.getValue())
+                                .owner("group-1")
+                                .ownerType(Group)
+                                .resource("/r1")
+                                .build()
+                )
+        );
+        Authorization newAuthGroup12 = assertDoesNotThrow(
+                () -> authorizationRepository.save(
+                        Authorization.builder()
+                                .authorizationType(Authorization.Type.Read.getValue())
+                                .owner("group-1")
+                                .ownerType(Group)
+                                .resource("/r2")
+                                .build()
+                )
+        );
+        Authorization newAuthGroup2 = assertDoesNotThrow(
+                () -> authorizationRepository.save(
+                        Authorization.builder()
+                                .authorizationType(Authorization.Type.Admin.getValue())
+                                .owner("group-2")
+                                .ownerType(Group)
+                                .resource("/r1")
+                                .build()
+                )
+        );
+
+        var userAuthorization = assertDoesNotThrow(
+                () -> authService.getAllAuthenticationForOwner(
+                        "user1@slac.stanford.edu",
+                        AuthorizationOwnerTypeDTO.User,
+                        "/r1",
+                        Optional.of(true)
+                )
+        );
+        assertThat(userAuthorization)
+                .hasSize(1)
+                .anySatisfy(auth -> AssertionsForClassTypes.assertThat(auth).is(AuthorizationDTOIs.of("/r1", Admin)));
+
+        userAuthorization = assertDoesNotThrow(
+                () -> authService.getAllAuthenticationForOwner(
+                        "user1@slac.stanford.edu",
+                        AuthorizationOwnerTypeDTO.User,
+                        "/r1",
+                        Optional.empty()
+                )
+        );
+        assertThat(userAuthorization)
+                .hasSize(3)
+                .anySatisfy(auth -> AssertionsForClassTypes.assertThat(auth).is(AuthorizationDTOIs.of("/r1", Admin)))
+                .anySatisfy(auth -> AssertionsForClassTypes.assertThat(auth).is(AuthorizationDTOIs.of("/r1", Read)));
+    }
+
+    @Test
+    public void testFindAuthoriztionForSpecificOwnerOType() {
+        appProperties.getRootUserList().clear();
+        Authorization newAuthUser1 = assertDoesNotThrow(
+                () -> authorizationRepository.save(
+                        Authorization.builder()
+                                .authorizationType(Authorization.Type.Read.getValue())
+                                .owner("user1@slac.stanford.edu")
+                                .ownerType(User)
+                                .resource("/r1")
+                                .build()
+                )
+        );
+        Authorization newAuthUser21 = assertDoesNotThrow(
+                () -> authorizationRepository.save(
+                        Authorization.builder()
+                                .authorizationType(Authorization.Type.Write.getValue())
+                                .owner("user2@slac.stanford.edu")
+                                .ownerType(User)
+                                .resource("/r1")
+                                .build()
+                )
+        );
+        Authorization newAuthUser22 = assertDoesNotThrow(
+                () -> authorizationRepository.save(
+                        Authorization.builder()
+                                .authorizationType(Authorization.Type.Read.getValue())
+                                .owner("user2@slac.stanford.edu")
+                                .ownerType(User)
+                                .resource("/r2")
+                                .build()
+                )
+        );
+        Authorization newAuthGroup11 = assertDoesNotThrow(
+                () -> authorizationRepository.save(
+                        Authorization.builder()
+                                .authorizationType(Authorization.Type.Admin.getValue())
+                                .owner("group-1")
+                                .ownerType(Group)
+                                .resource("/r1")
+                                .build()
+                )
+        );
+        Authorization newAuthGroup12 = assertDoesNotThrow(
+                () -> authorizationRepository.save(
+                        Authorization.builder()
+                                .authorizationType(Authorization.Type.Read.getValue())
+                                .owner("group-1")
+                                .ownerType(Group)
+                                .resource("/r2")
+                                .build()
+                )
+        );
+        Authorization newAuthGroup2 = assertDoesNotThrow(
+                () -> authorizationRepository.save(
+                        Authorization.builder()
+                                .authorizationType(Authorization.Type.Admin.getValue())
+                                .owner("group-2")
+                                .ownerType(Group)
+                                .resource("/r1")
+                                .build()
+                )
+        );
+
+        var userAuthorization = assertDoesNotThrow(
+                () -> authService.getAllAuthenticationForOwner(
+                        "user1@slac.stanford.edu",
+                        AuthorizationOwnerTypeDTO.User,
+                        Optional.of(true)
+                )
+        );
+        assertThat(userAuthorization)
+                .hasSize(2)
+                .anySatisfy(auth -> assertThat(auth).is(AuthorizationDTOIs.of("/r1", Admin)))
+                .anySatisfy(auth -> assertThat(auth).is(AuthorizationDTOIs.of("/r2", Read)));
+
+        userAuthorization = assertDoesNotThrow(
+                () -> authService.getAllAuthenticationForOwner(
+                        "user1@slac.stanford.edu",
+                        AuthorizationOwnerTypeDTO.User,
+                        Optional.empty()
+                )
+        );
+        assertThat(userAuthorization)
+                .hasSize(4)
+                .anySatisfy(auth -> assertThat(auth).is(AuthorizationDTOIs.of("/r1", Admin)))
+                .anySatisfy(auth -> assertThat(auth).is(AuthorizationDTOIs.of("/r1", Read)))
+                .anySatisfy(auth -> assertThat(auth).is(AuthorizationDTOIs.of("/r2", Read)));
+    }
+
+    /**
+     * Test to ensure that the authorization is not duplicated when the same authorization is added multiple times
+     */
+    static private class AuthorizationDTOIs extends Condition<AuthorizationDTO> {
+        private final String resource;
+        private final AuthorizationTypeDTO authorizationTypeDTO;
+
+        private AuthorizationDTOIs(String resource, AuthorizationTypeDTO authorizationTypeDTO) {
+            this.resource = resource;
+            this.authorizationTypeDTO = authorizationTypeDTO;
+        }
+
+        public static AuthorizationDTOIs of(String resource, AuthorizationTypeDTO authorizationTypeDTO) {
+            return new AuthorizationDTOIs(resource, authorizationTypeDTO);
+        }
+
+        @Override
+        public boolean matches(AuthorizationDTO authorizationDTO) {
+            return authorizationDTO != null
+                    && authorizationDTO.resource().equalsIgnoreCase(resource)
+                    && authorizationDTO.authorizationType().equals(authorizationTypeDTO);
+        }
     }
 }

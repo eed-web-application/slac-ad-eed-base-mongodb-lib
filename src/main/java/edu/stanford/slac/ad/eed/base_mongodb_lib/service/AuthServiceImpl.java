@@ -224,6 +224,118 @@ public class AuthServiceImpl extends AuthService {
         return allAuth;
     }
 
+    @Override
+    public List<AuthorizationDTO> getAllAuthenticationForOwner(String owner, AuthorizationOwnerTypeDTO ownerType, String resourcePrefix, Optional<Boolean> allHigherAuthOnSameResource) {
+        boolean isAppToken = appProperties.isAuthenticationToken(owner);
+        // get user authorizations
+        List<AuthorizationDTO> allAuth = new ArrayList<>(
+                wrapCatch(
+                        () -> authorizationRepository.findByOwnerAndOwnerTypeIsAndResourceStartingWith(
+                                owner,
+                                isAppToken ? AuthorizationOwnerType.Token : AuthorizationOwnerType.User,
+                                resourcePrefix
+                        ),
+                        -1,
+                        "AuthService::getAllAuthorization"
+                ).stream().map(
+                        authMapper::fromModel
+                ).toList()
+        );
+
+        // get user authorizations inherited by group
+        if (!isAppToken) {
+            // in case we have a user check also the groups that belongs to the user
+            List<GroupDTO> userGroups = peopleGroupService.findGroupByUserId(owner);
+
+            // load all groups authorizations
+            allAuth.addAll(
+                    userGroups
+                            .stream()
+                            .map(
+                                    g -> authorizationRepository.findByOwnerAndOwnerTypeIsAndResourceStartingWith(
+                                            g.commonName(),
+                                            AuthorizationOwnerType.Group,
+                                            resourcePrefix
+
+                                    )
+                            )
+                            .flatMap(List::stream)
+                            .map(
+                                    authMapper::fromModel
+                            )
+                            .toList()
+            );
+        }
+        if (allHigherAuthOnSameResource.isPresent() && allHigherAuthOnSameResource.get()) {
+            allAuth = allAuth.stream()
+                    .collect(
+                            Collectors.toMap(
+                                    AuthorizationDTO::resource,
+                                    auth -> auth,
+                                    (existing, replacement) ->
+
+                                            authMapper.toModel(existing.authorizationType()).getValue() >= authMapper.toModel(replacement.authorizationType()).getValue() ? existing : replacement
+                            ))
+                    .values().stream().toList();
+        }
+        return allAuth;
+    }
+
+    @Override
+    public List<AuthorizationDTO> getAllAuthenticationForOwner(String owner, AuthorizationOwnerTypeDTO ownerType, Optional<Boolean> allHigherAuthOnSameResource) {
+        boolean isAppToken = appProperties.isAuthenticationToken(owner);
+// get user authorizations
+        List<AuthorizationDTO> allAuth = new ArrayList<>(
+                wrapCatch(
+                        () -> authorizationRepository.findByOwnerAndOwnerTypeIs(
+                                owner,
+                                isAppToken ? AuthorizationOwnerType.Token : AuthorizationOwnerType.User
+                        ),
+                        -1,
+                        "AuthService::getAllAuthorization"
+                ).stream().map(
+                        authMapper::fromModel
+                ).toList()
+        );
+
+// get user authorizations inherited by group
+        if (!isAppToken) {
+            // in case we have a user check also the groups that belongs to the user
+            List<GroupDTO> userGroups = peopleGroupService.findGroupByUserId(owner);
+
+            // load all groups authorizations
+            allAuth.addAll(
+                    userGroups
+                            .stream()
+                            .map(
+                                    g -> authorizationRepository.findByOwnerAndOwnerTypeIs(
+                                            g.commonName(),
+                                            AuthorizationOwnerType.Group
+
+                                    )
+                            )
+                            .flatMap(List::stream)
+                            .map(
+                                    authMapper::fromModel
+                            )
+                            .toList()
+            );
+        }
+
+        if (allHigherAuthOnSameResource.isPresent() && allHigherAuthOnSameResource.get()) {
+            allAuth = allAuth.stream()
+                    .collect(
+                            Collectors.toMap(
+                                    AuthorizationDTO::resource,
+                                    auth -> auth,
+                                    (existing, replacement) -> authMapper.toModel(existing.authorizationType()).getValue() >= authMapper.toModel(replacement.authorizationType()).getValue() ? existing : replacement
+                            ))
+                    .values().stream().toList();
+        }
+
+        return allAuth;
+    }
+
     /**
      * Update all configured root user
      */
