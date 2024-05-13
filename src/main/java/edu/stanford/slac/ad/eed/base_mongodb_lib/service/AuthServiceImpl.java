@@ -86,6 +86,22 @@ public class AuthServiceImpl extends AuthService {
         );
     }
 
+    @Override
+    public void deleteAuthorizationForResourcePrefix(String resourcePrefix, String ownerId, AuthorizationOwnerType ownerType) {
+        wrapCatch(
+                () -> {
+                    authorizationRepository.deleteAllByResourceStartingWithAndOwnerIsAndOwnerTypeIs(
+                            resourcePrefix,
+                            ownerId,
+                            ownerType
+                    );
+                    return null;
+                },
+                -1,
+                "AuthService::deleteAuthorizationResourcePrefix"
+        );
+    }
+
     /**
      * Delete an authorizations for a resource with a specific path
      *
