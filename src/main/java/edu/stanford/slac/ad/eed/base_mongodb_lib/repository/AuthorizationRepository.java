@@ -49,6 +49,22 @@ public interface AuthorizationRepository extends MongoRepository<Authorization, 
      * @return list of authorizations
      */
     List<Authorization> findByOwnerAndOwnerTypeAndAuthorizationTypeIsGreaterThanEqualAndResourceStartingWith(String owner, AuthorizationOwnerType ownerType, Integer authorizationType, String resource);
+
+    /**
+     * Find all authorizations for a given owner
+     * @param owner owner
+     * @return list of authorizations
+     */
+    List<Authorization> findByOwnerAndOwnerTypeIs(String owner, AuthorizationOwnerType ownerType);
+
+    /**
+     * Find all authorizations for a given owner and resource
+     * @param owner owner
+     * @param resource resource
+     * @return list of authorizations
+     */
+    List<Authorization> findByOwnerAndOwnerTypeIsAndResourceStartingWith(String owner, AuthorizationOwnerType ownerType, String resourcePrefix);
+
     /**
      * Delete all authorizations for a given owner, resource and authorization type
      * @param owner owner
