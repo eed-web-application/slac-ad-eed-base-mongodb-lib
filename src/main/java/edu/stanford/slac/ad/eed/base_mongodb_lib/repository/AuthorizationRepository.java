@@ -77,4 +77,10 @@ public interface AuthorizationRepository extends MongoRepository<Authorization, 
      * @param ownerType owner type
      */
     void deleteAllByResourceStartingWithAndOwnerIsAndOwnerTypeIs(String resourcePrefix, String owner, AuthorizationOwnerType ownerType);
+
+    /**
+     * Delete all authorizations for a given resource prefix and owner type
+     * @param ownerType owner type
+     */
+    void deleteAllByResourceStartingWithAndOwnerTypeIs(String resourcePrefix, AuthorizationOwnerType ownerType);
 }
