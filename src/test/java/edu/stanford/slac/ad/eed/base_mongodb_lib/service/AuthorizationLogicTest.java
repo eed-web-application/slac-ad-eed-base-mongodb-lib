@@ -296,11 +296,11 @@ public class AuthorizationLogicTest {
                     .ownerType(AuthorizationOwnerTypeDTO.User)
                     .build();
 
-            for (int i = 0; i < numberOfThreads*10; i++) {
+            for (int i = 0; i < numberOfThreads * 10; i++) {
                 tasks.add(() -> authService.ensureAuthorization(authorizationDTO));
             }
 
-            futures = assertDoesNotThrow(()->executorService.invokeAll(tasks));
+            futures = assertDoesNotThrow(() -> executorService.invokeAll(tasks));
 
             // Shut down the executor service
             executorService.shutdown();
@@ -309,7 +309,7 @@ public class AuthorizationLogicTest {
         // Assert that all threads received the same ID
         String expectedId = null;
         for (Future<String> future : futures) {
-            String id = assertDoesNotThrow(()->future.get());
+            String id = assertDoesNotThrow(() -> future.get());
             if (expectedId == null) {
                 expectedId = id; // Set the expected ID from the first thread
             }
@@ -333,5 +333,54 @@ public class AuthorizationLogicTest {
         public boolean matches(String actualValue) {
             return actualValue != null && actualValue.compareToIgnoreCase(expectedValue) == 0;
         }
+    }
+
+    @Test
+    public void deleteAuthorizationForApsecificUserAndresource() {
+        appProperties.getRootUserList().clear();
+        Authorization newAuthUser1 = assertDoesNotThrow(
+                () -> authorizationRepository.save(
+                        Authorization.builder()
+                                .authorizationType(Authorization.Type.Read.getValue())
+                                .owner("user1@slac.stanford.edu")
+                                .ownerType(User)
+                                .resource("/r1")
+                                .build()
+                )
+        );
+        Authorization newAuthUser2 = assertDoesNotThrow(
+                () -> authorizationRepository.save(
+                        Authorization.builder()
+                                .authorizationType(Authorization.Type.Read.getValue())
+                                .owner("user2@slac.stanford.edu")
+                                .ownerType(User)
+                                .resource("/r1")
+                                .build()
+                )
+        );
+
+        Authorization newAuthGroup2 = assertDoesNotThrow(
+                () -> authorizationRepository.save(
+                        Authorization.builder()
+                                .authorizationType(Authorization.Type.Read.getValue())
+                                .owner("group-name")
+                                .ownerType(Group)
+                                .resource("/r1")
+                                .build()
+                )
+        );
+
+        assertDoesNotThrow(
+                () -> authService.deleteAuthorizationForResourcePrefix("/r1", "user2@slac.stanford.edu", User)
+        );
+
+        var authorization = assertDoesNotThrow(
+                () -> authService.findByResourceIs("/r1")
+        );
+
+        assertThat(authorization).hasSize(2);
+        assertThat(authorization)
+                .extracting(AuthorizationDTO::owner)
+                .contains("user1@slac.stanford.edu", "group-name");
     }
 }
