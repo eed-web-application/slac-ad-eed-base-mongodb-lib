@@ -336,7 +336,7 @@ public class AuthorizationLogicTest {
     }
 
     @Test
-    public void deleteAuthorizationForApsecificUserAndresource() {
+    public void deleteAuthorizationForASpecificUserAndResource() {
         appProperties.getRootUserList().clear();
         Authorization newAuthUser1 = assertDoesNotThrow(
                 () -> authorizationRepository.save(
@@ -382,5 +382,124 @@ public class AuthorizationLogicTest {
         assertThat(authorization)
                 .extracting(AuthorizationDTO::owner)
                 .contains("user1@slac.stanford.edu", "group-name");
+    }
+
+    @Test
+    public void deleteAuthorizationForASpecificGroupAndResource() {
+        appProperties.getRootUserList().clear();
+        Authorization newAuthUser1 = assertDoesNotThrow(
+                () -> authorizationRepository.save(
+                        Authorization.builder()
+                                .authorizationType(Authorization.Type.Read.getValue())
+                                .owner("user1@slac.stanford.edu")
+                                .ownerType(User)
+                                .resource("/r1")
+                                .build()
+                )
+        );
+        Authorization newAuthUser2 = assertDoesNotThrow(
+                () -> authorizationRepository.save(
+                        Authorization.builder()
+                                .authorizationType(Authorization.Type.Read.getValue())
+                                .owner("user2@slac.stanford.edu")
+                                .ownerType(User)
+                                .resource("/r1")
+                                .build()
+                )
+        );
+
+        Authorization newAuthGroup2 = assertDoesNotThrow(
+                () -> authorizationRepository.save(
+                        Authorization.builder()
+                                .authorizationType(Authorization.Type.Read.getValue())
+                                .owner("group-name")
+                                .ownerType(Group)
+                                .resource("/r1")
+                                .build()
+                )
+        );
+
+        assertDoesNotThrow(
+                () -> authService.deleteAuthorizationForResourcePrefix("/r1", "group-name", AuthorizationOwnerTypeDTO.Group)
+        );
+
+        var authorization = assertDoesNotThrow(
+                () -> authService.findByResourceIs("/r1")
+        );
+
+        assertThat(authorization).hasSize(2);
+        assertThat(authorization)
+                .extracting(AuthorizationDTO::owner)
+                .contains("user1@slac.stanford.edu", "user2@slac.stanford.edu");
+    }
+
+    @Test
+    public void deleteAuthorizationForASpecificResourceAndOwnerType() {
+        appProperties.getRootUserList().clear();
+        Authorization newAuthUser1 = assertDoesNotThrow(
+                () -> authorizationRepository.save(
+                        Authorization.builder()
+                                .authorizationType(Authorization.Type.Read.getValue())
+                                .owner("user1@slac.stanford.edu")
+                                .ownerType(User)
+                                .resource("/r1")
+                                .build()
+                )
+        );
+        Authorization newAuthUser2 = assertDoesNotThrow(
+                () -> authorizationRepository.save(
+                        Authorization.builder()
+                                .authorizationType(Authorization.Type.Read.getValue())
+                                .owner("user2@slac.stanford.edu")
+                                .ownerType(User)
+                                .resource("/r1")
+                                .build()
+                )
+        );
+
+        Authorization newAuthGroup1 = assertDoesNotThrow(
+                () -> authorizationRepository.save(
+                        Authorization.builder()
+                                .authorizationType(Authorization.Type.Read.getValue())
+                                .owner("group-name-1")
+                                .ownerType(Group)
+                                .resource("/r1")
+                                .build()
+                )
+        );
+
+        Authorization newAuthGroup2 = assertDoesNotThrow(
+                () -> authorizationRepository.save(
+                        Authorization.builder()
+                                .authorizationType(Authorization.Type.Read.getValue())
+                                .owner("group-name-1")
+                                .ownerType(Group)
+                                .resource("/r1")
+                                .build()
+                )
+        );
+
+        assertDoesNotThrow(
+                () -> authService.deleteAuthorizationForResourcePrefix("/r1", AuthorizationOwnerTypeDTO.Group)
+        );
+
+        var authorization = assertDoesNotThrow(
+                () -> authService.findByResourceIs("/r1")
+        );
+
+        assertThat(authorization).hasSize(2);
+        assertThat(authorization)
+                .extracting(AuthorizationDTO::owner)
+                .contains("user1@slac.stanford.edu", "user2@slac.stanford.edu");
+
+        assertDoesNotThrow(
+                () -> authService.deleteAuthorizationForResourcePrefix("/r1", AuthorizationOwnerTypeDTO.User)
+        );
+
+        authorization = assertDoesNotThrow(
+                () -> authService.findByResourceIs("/r1")
+        );
+
+        assertThat(authorization).hasSize(0);
     }
 }
