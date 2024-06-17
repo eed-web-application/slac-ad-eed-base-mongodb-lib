@@ -29,7 +29,7 @@ public class TestControllerHelperService {
     }
 
 
-    public ApiResultResponse<PersonDTO> getMe(
+    public ApiResultResponse<PersonDetailsDTO> getMe(
             MockMvc mockMvc,
             ResultMatcher resultMatcher,
             Optional<String> userInfo) throws Exception {

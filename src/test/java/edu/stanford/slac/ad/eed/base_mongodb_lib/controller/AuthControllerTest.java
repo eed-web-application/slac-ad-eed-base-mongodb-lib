@@ -66,7 +66,41 @@ public class AuthControllerTest {
 
     @Test
     public void getMe() {
-        ApiResultResponse<PersonDTO> meResult = assertDoesNotThrow(
+        // add some other auhtorization for user
+        assertDoesNotThrow(
+                ()->authService.addNewAuthorization(
+                        NewAuthorizationDTO
+                                .builder()
+                                .authorizationType(AuthorizationTypeDTO.Read)
+                                .ownerType(AuthorizationOwnerTypeDTO.User)
+                                .owner("user1@slac.stanford.edu")
+                                .resource("read::resource1")
+                                .build()
+                )
+        );
+        assertDoesNotThrow(
+                ()->authService.addNewAuthorization(
+                        NewAuthorizationDTO
+                                .builder()
+                                .authorizationType(AuthorizationTypeDTO.Write)
+                                .ownerType(AuthorizationOwnerTypeDTO.User)
+                                .owner("user1@slac.stanford.edu")
+                                .resource("write::resource2")
+                                .build()
+                )
+        );
+        assertDoesNotThrow(
+                ()->authService.addNewAuthorization(
+                        NewAuthorizationDTO
+                                .builder()
+                                .authorizationType(AuthorizationTypeDTO.Read)
+                                .ownerType(AuthorizationOwnerTypeDTO.Group)
+                                .owner("group-1")
+                                .resource("read::resource3")
+                                .build()
+                )
+        );
+        ApiResultResponse<PersonDetailsDTO> meResult = assertDoesNotThrow(
                 () -> testControllerHelperService.getMe(
                         mockMvc,
                         status().isOk(),
@@ -74,9 +108,20 @@ public class AuthControllerTest {
                 )
         );
 
-        AssertionsForClassTypes.assertThat(meResult).isNotNull();
-        AssertionsForClassTypes.assertThat(meResult.getErrorCode()).isEqualTo(0);
-        AssertionsForClassTypes.assertThat(meResult.getPayload().uid()).isEqualTo("user1");
+        assertThat(meResult).isNotNull();
+        assertThat(meResult.getErrorCode()).isEqualTo(0);
+        assertThat(meResult.getPayload().person().uid()).isEqualTo("user1");
+        assertThat(meResult.getPayload().authorizations()).hasSize(4);
+        assertThat(meResult.getPayload().authorizations())
+                .extracting(
+                        AuthorizationDTO::resource
+                )
+                .contains(
+                        "*",
+                        "read::resource1",
+                        "write::resource2",
+                        "read::resource3"
+                );
     }
 
     @Test
