@@ -45,7 +45,6 @@ import static edu.stanford.slac.ad.eed.baselib.utility.StringUtilities.normalize
  */
 @Log4j2
 @Service
-@AllArgsConstructor
 public class AuthServiceImpl extends AuthService {
     @Value("${spring.application.name}")
     private String appName;
