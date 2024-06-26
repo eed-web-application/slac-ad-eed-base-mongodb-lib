@@ -5,10 +5,7 @@ import edu.stanford.slac.ad.eed.base_mongodb_lib.repository.AuthorizationReposit
 import edu.stanford.slac.ad.eed.base_mongodb_lib.repository.LocalGroupRepository;
 import edu.stanford.slac.ad.eed.baselib.api.v1.dto.*;
 import edu.stanford.slac.ad.eed.baselib.api.v1.mapper.AuthMapper;
-import edu.stanford.slac.ad.eed.baselib.api.v2.dto.LocalGroupDTO;
-import edu.stanford.slac.ad.eed.baselib.api.v2.dto.LocalGroupQueryParameterDTO;
-import edu.stanford.slac.ad.eed.baselib.api.v2.dto.NewLocalGroupDTO;
-import edu.stanford.slac.ad.eed.baselib.api.v2.dto.UpdateLocalGroupDTO;
+import edu.stanford.slac.ad.eed.baselib.api.v2.dto.*;
 import edu.stanford.slac.ad.eed.baselib.api.v2.mapper.LocalGroupMapper;
 import edu.stanford.slac.ad.eed.baselib.auth.JWTHelper;
 import edu.stanford.slac.ad.eed.baselib.config.AppProperties;
@@ -26,6 +23,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -1167,7 +1165,7 @@ public class AuthServiceImpl extends AuthService {
                         Authorization.builder()
                                 .authorizationType(Authorization.Type.Admin.getValue())
                                 .owner(userId)
-                                .ownerType(isAppToken?AuthorizationOwnerType.Token:AuthorizationOwnerType.User)
+                                .ownerType(isAppToken ? AuthorizationOwnerType.Token : AuthorizationOwnerType.User)
                                 .resource("%s/group".formatted(
                                         appProperties.getAppName()
                                 ))
@@ -1198,10 +1196,56 @@ public class AuthServiceImpl extends AuthService {
     }
 
     @Override
+    public void manageAuthorizationOnGroup(AuthorizationGroupManagementDTO authorizationGroupManagementDTO) {
+        if (authorizationGroupManagementDTO == null) return;
+
+        // add new users
+        if (authorizationGroupManagementDTO.addUsers() != null) {
+            authorizationGroupManagementDTO.addUsers().forEach(u -> authorizeUserIdToManageGroup(u));
+        }
+
+        // remove users
+        if (authorizationGroupManagementDTO.removeUsers() != null) {
+            authorizationGroupManagementDTO.removeUsers().forEach(u -> removeAuthorizationToUserIdToManageGroup(u));
+        }
+
+    }
+
+    @Override
+    public List<UserGroupManagementAuthorizationLevel> getGroupManagementAuthorization(List<String> userIds) {
+        List<Authorization> authFound = wrapCatch(
+                () -> authorizationRepository.findByResourceIsAndOwnerIn("%s/group".formatted(appProperties.getAppName()), userIds),
+                1
+        );
+        var result = authFound.stream().map(
+                auth -> UserGroupManagementAuthorizationLevel.builder()
+                        .user(peopleGroupService.findPersonByEMail(auth.getOwner()))
+                        .canManageGroup(true)
+                        .build()
+        ).toList();
+        // create a new editable list
+        var mutableResult = new ArrayList<>(result);
+        //add not found user with authorization at false
+        userIds.stream().filter(
+                u -> result.stream().noneMatch(
+                        r -> r.user().mail().compareToIgnoreCase(u) == 0
+                )
+        ).forEach(
+                u -> mutableResult.add(
+                        UserGroupManagementAuthorizationLevel.builder()
+                                .user(peopleGroupService.findPersonByEMail(u))
+                                .canManageGroup(checkForRoot(new UsernamePasswordAuthenticationToken(u, null)))
+                                .build()
+                )
+        );
+        return mutableResult;
+    }
+
+    @Override
     public String createLocalGroup(NewLocalGroupDTO newGroupDTO) {
         LocalGroup localGroup = localGroupMapper.fromDTO(newGroupDTO);
         LocalGroup savedGroup = wrapCatch(
-                ()-> localGroupRepository.save(localGroup),
+                () -> localGroupRepository.save(localGroup),
                 -1,
                 "AuthService::createLocalGroup"
         );
@@ -1211,10 +1255,10 @@ public class AuthServiceImpl extends AuthService {
     @Override
     public void updateLocalGroup(String localGroupId, UpdateLocalGroupDTO updateGroupDTO) {
         LocalGroup foundLocalGroup = wrapCatch(
-                ()-> localGroupRepository.findById(localGroupId),
+                () -> localGroupRepository.findById(localGroupId),
                 -1
         ).orElseThrow(
-                ()-> ControllerLogicException.builder()
+                () -> ControllerLogicException.builder()
                         .errorCode(-2)
                         .errorMessage("Local group of id %s not found".formatted(localGroupId))
                         .errorDomain("AuthService::updateLocalGroup")
@@ -1222,7 +1266,7 @@ public class AuthServiceImpl extends AuthService {
         );
 
         wrapCatch(
-                ()-> localGroupRepository.save(
+                () -> localGroupRepository.save(
                         localGroupMapper.updateModel(updateGroupDTO, foundLocalGroup)
                 ),
                 -3
@@ -1232,7 +1276,10 @@ public class AuthServiceImpl extends AuthService {
     @Override
     public void deleteLocalGroup(String localGroupId) {
         wrapCatch(
-                ()-> {localGroupRepository.deleteById(localGroupId); return null;},
+                () -> {
+                    localGroupRepository.deleteById(localGroupId);
+                    return null;
+                },
                 -1
         );
     }
@@ -1240,7 +1287,7 @@ public class AuthServiceImpl extends AuthService {
     @Override
     public List<LocalGroupDTO> findLocalGroup(LocalGroupQueryParameterDTO query) {
         return wrapCatch(
-                ()-> localGroupRepository.findAll(localGroupMapper.toQuery(query)),
+                () -> localGroupRepository.findAll(localGroupMapper.toQuery(query)),
                 -1
         ).stream().map(
                 localGroupMapper::toDTO
