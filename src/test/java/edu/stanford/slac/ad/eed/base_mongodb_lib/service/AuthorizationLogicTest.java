@@ -471,17 +471,6 @@ public class AuthorizationLogicTest {
                 )
         );
 
-        Authorization newAuthGroup2 = assertDoesNotThrow(
-                () -> authorizationRepository.save(
-                        Authorization.builder()
-                                .authorizationType(Authorization.Type.Read.getValue())
-                                .owner("group-name-1")
-                                .ownerType(Group)
-                                .resource("/r1")
-                                .build()
-                )
-        );
-
         assertDoesNotThrow(
                 () -> authService.deleteAuthorizationForResourcePrefix("/r1", AuthorizationOwnerTypeDTO.Group)
         );
