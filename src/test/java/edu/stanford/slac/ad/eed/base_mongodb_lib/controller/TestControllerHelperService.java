@@ -3,6 +3,7 @@ package edu.stanford.slac.ad.eed.base_mongodb_lib.controller;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.stanford.slac.ad.eed.baselib.api.v1.dto.*;
+import edu.stanford.slac.ad.eed.baselib.api.v2.dto.*;
 import edu.stanford.slac.ad.eed.baselib.auth.JWTHelper;
 import edu.stanford.slac.ad.eed.baselib.config.AppProperties;
 import edu.stanford.slac.ad.eed.baselib.exception.ControllerLogicException;
@@ -22,34 +23,30 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 public class TestControllerHelperService {
     private final JWTHelper jwtHelper;
     private final AppProperties appProperties;
+    private final ObjectMapper objectMapper;
 
-    public TestControllerHelperService(JWTHelper jwtHelper, AppProperties appProperties) {
+    public TestControllerHelperService(JWTHelper jwtHelper, AppProperties appProperties, ObjectMapper objectMapper) {
         this.jwtHelper = jwtHelper;
         this.appProperties = appProperties;
+        this.objectMapper = objectMapper;
     }
-
 
     public ApiResultResponse<PersonDetailsDTO> getMe(
             MockMvc mockMvc,
             ResultMatcher resultMatcher,
             Optional<String> userInfo) throws Exception {
-        MockHttpServletRequestBuilder getBuilder =
+        MockHttpServletRequestBuilder requestBuilder =
                 get("/v1/auth/me")
                         .accept(MediaType.APPLICATION_JSON);
-        userInfo.ifPresent(login -> getBuilder.header(appProperties.getUserHeaderName(), jwtHelper.generateJwt(login)));
-        MvcResult result = mockMvc.perform(
-                        getBuilder
-                )
-                .andExpect(resultMatcher)
-                .andReturn();
-        Optional<ControllerLogicException> someException = Optional.ofNullable((ControllerLogicException) result.getResolvedException());
-        if (someException.isPresent()) {
-            throw someException.get();
-        }
-        return new ObjectMapper().readValue(
-                result.getResponse().getContentAsString(),
+        userInfo.ifPresent(login -> requestBuilder.header(appProperties.getUserHeaderName(), jwtHelper.generateJwt(login)));
+        return executeHttpRequest(
                 new TypeReference<>() {
-                });
+                },
+                mockMvc,
+                resultMatcher,
+                userInfo,
+                requestBuilder
+        );
     }
 
     public ApiResultResponse<List<PersonDTO>> findUsers(
@@ -57,24 +54,19 @@ public class TestControllerHelperService {
             ResultMatcher resultMatcher,
             Optional<String> userInfo,
             Optional<String> search) throws Exception {
-        MockHttpServletRequestBuilder getBuilder =
+        MockHttpServletRequestBuilder requestBuilder =
                 get("/v1/auth/users")
                         .accept(MediaType.APPLICATION_JSON);
-        userInfo.ifPresent(login -> getBuilder.header(appProperties.getUserHeaderName(), jwtHelper.generateJwt(login)));
-        search.ifPresent(string -> getBuilder.param("search", string));
-        MvcResult result = mockMvc.perform(
-                        getBuilder
-                )
-                .andExpect(resultMatcher)
-                .andReturn();
-        Optional<ControllerLogicException> someException = Optional.ofNullable((ControllerLogicException) result.getResolvedException());
-        if (someException.isPresent()) {
-            throw someException.get();
-        }
-        return new ObjectMapper().readValue(
-                result.getResponse().getContentAsString(),
+        userInfo.ifPresent(login -> requestBuilder.header(appProperties.getUserHeaderName(), jwtHelper.generateJwt(login)));
+        search.ifPresent(string -> requestBuilder.param("search", string));
+        return executeHttpRequest(
                 new TypeReference<>() {
-                });
+                },
+                mockMvc,
+                resultMatcher,
+                userInfo,
+                requestBuilder
+        );
     }
 
     public ApiResultResponse<List<GroupDTO>> findGroups(
@@ -82,24 +74,19 @@ public class TestControllerHelperService {
             ResultMatcher resultMatcher,
             Optional<String> userInfo,
             Optional<String> search) throws Exception {
-        MockHttpServletRequestBuilder getBuilder =
+        MockHttpServletRequestBuilder requestBuilder =
                 get("/v1/auth/groups")
                         .accept(MediaType.APPLICATION_JSON);
-        userInfo.ifPresent(login -> getBuilder.header(appProperties.getUserHeaderName(), jwtHelper.generateJwt(login)));
-        search.ifPresent(string -> getBuilder.param("search", string));
-        MvcResult result = mockMvc.perform(
-                        getBuilder
-                )
-                .andExpect(resultMatcher)
-                .andReturn();
-        Optional<ControllerLogicException> someException = Optional.ofNullable((ControllerLogicException) result.getResolvedException());
-        if (someException.isPresent()) {
-            throw someException.get();
-        }
-        return new ObjectMapper().readValue(
-                result.getResponse().getContentAsString(),
+        userInfo.ifPresent(login -> requestBuilder.header(appProperties.getUserHeaderName(), jwtHelper.generateJwt(login)));
+        search.ifPresent(string -> requestBuilder.param("search", string));
+        return executeHttpRequest(
                 new TypeReference<>() {
-                });
+                },
+                mockMvc,
+                resultMatcher,
+                userInfo,
+                requestBuilder
+        );
     }
 
     public ApiResultResponse<AuthenticationTokenDTO> createNewAuthenticationToken(
@@ -107,7 +94,7 @@ public class TestControllerHelperService {
             ResultMatcher resultMatcher,
             Optional<String> userInfo,
             NewAuthenticationTokenDTO newAuthenticationTokenDTO) throws Exception {
-        MockHttpServletRequestBuilder postBuilder =
+        MockHttpServletRequestBuilder requestBuilder =
                 post("/v1/auth/application-token")
                         .content(
                                 new ObjectMapper().writeValueAsString(
@@ -116,43 +103,33 @@ public class TestControllerHelperService {
                         )
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON);
-        userInfo.ifPresent(login -> postBuilder.header(appProperties.getUserHeaderName(), jwtHelper.generateJwt(login)));
-        MvcResult result = mockMvc.perform(
-                        postBuilder
-                )
-                .andExpect(resultMatcher)
-                .andReturn();
-        Optional<ControllerLogicException> someException = Optional.ofNullable((ControllerLogicException) result.getResolvedException());
-        if (someException.isPresent()) {
-            throw someException.get();
-        }
-        return new ObjectMapper().readValue(
-                result.getResponse().getContentAsString(),
+        userInfo.ifPresent(login -> requestBuilder.header(appProperties.getUserHeaderName(), jwtHelper.generateJwt(login)));
+        return executeHttpRequest(
                 new TypeReference<>() {
-                });
+                },
+                mockMvc,
+                resultMatcher,
+                userInfo,
+                requestBuilder
+        );
     }
 
     public ApiResultResponse<List<AuthenticationTokenDTO>> getAllAuthenticationToken(
             MockMvc mockMvc,
             ResultMatcher resultMatcher,
             Optional<String> userInfo) throws Exception {
-        MockHttpServletRequestBuilder getBuilder =
+        MockHttpServletRequestBuilder requestBuilder =
                 get("/v1/auth/application-token")
                         .accept(MediaType.APPLICATION_JSON);
-        userInfo.ifPresent(login -> getBuilder.header(appProperties.getUserHeaderName(), jwtHelper.generateJwt(login)));
-        MvcResult result = mockMvc.perform(
-                        getBuilder
-                )
-                .andExpect(resultMatcher)
-                .andReturn();
-        Optional<ControllerLogicException> someException = Optional.ofNullable((ControllerLogicException) result.getResolvedException());
-        if (someException.isPresent()) {
-            throw someException.get();
-        }
-        return new ObjectMapper().readValue(
-                result.getResponse().getContentAsString(),
+        userInfo.ifPresent(login -> requestBuilder.header(appProperties.getUserHeaderName(), jwtHelper.generateJwt(login)));
+        return executeHttpRequest(
                 new TypeReference<>() {
-                });
+                },
+                mockMvc,
+                resultMatcher,
+                userInfo,
+                requestBuilder
+        );
     }
 
     public ApiResultResponse<Boolean> deleteAuthenticationToken(
@@ -160,23 +137,18 @@ public class TestControllerHelperService {
             ResultMatcher resultMatcher,
             Optional<String> userInfo,
             String id) throws Exception {
-        MockHttpServletRequestBuilder deleteBuilder =
+        MockHttpServletRequestBuilder requestBuilder =
                 delete("/v1/auth/application-token/{id}", id)
                         .accept(MediaType.APPLICATION_JSON);
-        userInfo.ifPresent(login -> deleteBuilder.header(appProperties.getUserHeaderName(), jwtHelper.generateJwt(login)));
-        MvcResult result = mockMvc.perform(
-                        deleteBuilder
-                )
-                .andExpect(resultMatcher)
-                .andReturn();
-        Optional<ControllerLogicException> someException = Optional.ofNullable((ControllerLogicException) result.getResolvedException());
-        if (someException.isPresent()) {
-            throw someException.get();
-        }
-        return new ObjectMapper().readValue(
-                result.getResponse().getContentAsString(),
+        userInfo.ifPresent(login -> requestBuilder.header(appProperties.getUserHeaderName(), jwtHelper.generateJwt(login)));
+        return executeHttpRequest(
                 new TypeReference<>() {
-                });
+                },
+                mockMvc,
+                resultMatcher,
+                userInfo,
+                requestBuilder
+        );
     }
 
     public ApiResultResponse<Boolean> createNewRootUser(
@@ -188,19 +160,14 @@ public class TestControllerHelperService {
                 post("/v1/auth/root/{email}", userEmail)
                         .accept(MediaType.APPLICATION_JSON);
         userInfo.ifPresent(login -> requestBuilder.header(appProperties.getUserHeaderName(), jwtHelper.generateJwt(login)));
-        MvcResult result = mockMvc.perform(
-                        requestBuilder
-                )
-                .andExpect(resultMatcher)
-                .andReturn();
-        Optional<ControllerLogicException> someException = Optional.ofNullable((ControllerLogicException) result.getResolvedException());
-        if (someException.isPresent()) {
-            throw someException.get();
-        }
-        return new ObjectMapper().readValue(
-                result.getResponse().getContentAsString(),
+        return executeHttpRequest(
                 new TypeReference<>() {
-                });
+                },
+                mockMvc,
+                resultMatcher,
+                userInfo,
+                requestBuilder
+        );
     }
 
     public ApiResultResponse<Boolean> deleteRootUser(
@@ -212,19 +179,14 @@ public class TestControllerHelperService {
                 delete("/v1/auth/root/{email}", userEmail)
                         .accept(MediaType.APPLICATION_JSON);
         userInfo.ifPresent(login -> requestBuilder.header(appProperties.getUserHeaderName(), jwtHelper.generateJwt(login)));
-        MvcResult result = mockMvc.perform(
-                        requestBuilder
-                )
-                .andExpect(resultMatcher)
-                .andReturn();
-        Optional<ControllerLogicException> someException = Optional.ofNullable((ControllerLogicException) result.getResolvedException());
-        if (someException.isPresent()) {
-            throw someException.get();
-        }
-        return new ObjectMapper().readValue(
-                result.getResponse().getContentAsString(),
+        return executeHttpRequest(
                 new TypeReference<>() {
-                });
+                },
+                mockMvc,
+                resultMatcher,
+                userInfo,
+                requestBuilder
+        );
     }
 
     public ApiResultResponse<List<AuthorizationDTO>> findAllRootUser(
@@ -235,18 +197,271 @@ public class TestControllerHelperService {
                 get("/v1/auth/root")
                         .accept(MediaType.APPLICATION_JSON);
         userInfo.ifPresent(login -> requestBuilder.header(appProperties.getUserHeaderName(), jwtHelper.generateJwt(login)));
-        MvcResult result = mockMvc.perform(
-                        requestBuilder
-                )
+        return executeHttpRequest(
+                new TypeReference<>() {
+                },
+                mockMvc,
+                resultMatcher,
+                userInfo,
+                requestBuilder
+        );
+    }
+
+    /**
+     * Create new local group
+     *
+     * @param mockMvc
+     * @param resultMatcher
+     * @param userInfo
+     * @param newLocalGroupDTO
+     * @return
+     * @throws Exception
+     */
+    public ApiResultResponse<String> v2AuthorizationControllerCreateNewLocalGroup(
+            MockMvc mockMvc,
+            ResultMatcher resultMatcher,
+            Optional<String> userInfo,
+            NewLocalGroupDTO newLocalGroupDTO) throws Exception {
+        MockHttpServletRequestBuilder requestBuilder =
+                post("/v2/auth/local/group")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                                objectMapper.writeValueAsString(
+                                        newLocalGroupDTO
+                                )
+                        );
+        userInfo.ifPresent(login -> requestBuilder.header(appProperties.getUserHeaderName(), jwtHelper.generateJwt(login)));
+        return executeHttpRequest(
+                new TypeReference<>() {
+                },
+                mockMvc,
+                resultMatcher,
+                userInfo,
+                requestBuilder
+        );
+    }
+
+    /**
+     * Delete a local group
+     *
+     * @param mockMvc
+     * @param resultMatcher
+     * @param userInfo
+     * @param localGroupId
+     * @return
+     * @throws Exception
+     */
+    public ApiResultResponse<Boolean> v2AuthorizationControllerDeleteLocalGroup(
+            MockMvc mockMvc,
+            ResultMatcher resultMatcher,
+            Optional<String> userInfo,
+            String localGroupId) throws Exception {
+        MockHttpServletRequestBuilder requestBuilder =
+                delete
+                        (
+                                "/v2/auth/local/group/{localGroupId}",
+                                localGroupId
+                        )
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON);
+        userInfo.ifPresent(login -> requestBuilder.header(appProperties.getUserHeaderName(), jwtHelper.generateJwt(login)));
+        return executeHttpRequest(
+                new TypeReference<>() {
+                },
+                mockMvc,
+                resultMatcher,
+                userInfo,
+                requestBuilder
+        );
+    }
+
+    /**
+     * Update a local group
+     *
+     * @param mockMvc
+     * @param resultMatcher
+     * @param userInfo
+     * @param localGroupId
+     * @param updateLocalGroupDTO
+     * @return
+     * @throws Exception
+     */
+    public ApiResultResponse<Boolean> v2AuthorizationControllerUpdateLocalGroup(
+            MockMvc mockMvc,
+            ResultMatcher resultMatcher,
+            Optional<String> userInfo,
+            String localGroupId,
+            UpdateLocalGroupDTO updateLocalGroupDTO) throws Exception {
+        MockHttpServletRequestBuilder requestBuilder =
+                put
+                        (
+                                "/v2/auth/local/group/{localGroupId}",
+                                localGroupId
+                        )
+                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                                objectMapper.writeValueAsString(
+                                        updateLocalGroupDTO
+                                )
+                        );
+        userInfo.ifPresent(login -> requestBuilder.header(appProperties.getUserHeaderName(), jwtHelper.generateJwt(login)));
+        return executeHttpRequest(
+                new TypeReference<>() {
+                },
+                mockMvc,
+                resultMatcher,
+                userInfo,
+                requestBuilder
+        );
+    }
+
+    /**
+     * Find local group
+     *
+     * @param mockMvc
+     * @param resultMatcher
+     * @param userInfo
+     * @param anchorId
+     * @param contextSize
+     * @param limit
+     * @param search
+     * @return
+     * @throws Exception
+     */
+    public ApiResultResponse<List<LocalGroupDTO>> v2AuthorizationControllerFindLocalGroup(
+            MockMvc mockMvc,
+            ResultMatcher resultMatcher,
+            Optional<String> userInfo,
+            Optional<String> anchorId,
+            Optional<Integer> contextSize,
+            Optional<Integer> limit,
+            Optional<String> search) throws Exception {
+        MockHttpServletRequestBuilder requestBuilder =
+                get
+                        (
+                                "/v2/auth/local/group"
+                        )
+                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_JSON);
+        userInfo.ifPresent(login -> requestBuilder.header(appProperties.getUserHeaderName(), jwtHelper.generateJwt(login)));
+        anchorId.ifPresent(string -> requestBuilder.param("anchorId", string));
+        contextSize.ifPresent(integer -> requestBuilder.param("contextSize", String.valueOf(integer)));
+        limit.ifPresent(integer -> requestBuilder.param("limit", String.valueOf(integer)));
+        search.ifPresent(string -> requestBuilder.param("search", string));
+        return executeHttpRequest(
+                new TypeReference<>() {
+                },
+                mockMvc,
+                resultMatcher,
+                userInfo,
+                requestBuilder
+        );
+    }
+
+    /**
+     * Find local group by id
+     *
+     * @param mockMvc
+     * @param resultMatcher
+     * @param userInfo
+     * @param localGroupId
+     * @return
+     * @throws Exception
+     */
+    public ApiResultResponse<LocalGroupDTO> v2AuthorizationControllerFindLocalGroupById(
+            MockMvc mockMvc,
+            ResultMatcher resultMatcher,
+            Optional<String> userInfo,
+            String localGroupId
+    ) throws Exception {
+        MockHttpServletRequestBuilder requestBuilder =
+                get
+                        (
+                                "/v2/auth/local/group/{localGroupId}", localGroupId
+                        )
+                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_JSON);
+        userInfo.ifPresent(login -> requestBuilder.header(appProperties.getUserHeaderName(), jwtHelper.generateJwt(login)));
+        return executeHttpRequest(
+                new TypeReference<>() {
+                },
+                mockMvc,
+                resultMatcher,
+                userInfo,
+                requestBuilder
+        );
+    }
+
+    public ApiResultResponse<Boolean> v2AuthorizationControllerManageGroupManagementAuthorization(
+            MockMvc mockMvc,
+            ResultMatcher resultMatcher,
+            Optional<String> userInfo,
+            AuthorizationGroupManagementDTO authorizationGroupManagementDTO) throws Exception {
+        MockHttpServletRequestBuilder requestBuilder =
+                post
+                        (
+                                "/v2/auth/local/group/authorize"
+                        )
+                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                                objectMapper.writeValueAsString(
+                                        authorizationGroupManagementDTO
+                                )
+                        );
+        userInfo.ifPresent(login -> requestBuilder.header(appProperties.getUserHeaderName(), jwtHelper.generateJwt(login)));
+        return executeHttpRequest(
+                new TypeReference<>() {
+                },
+                mockMvc,
+                resultMatcher,
+                userInfo,
+                requestBuilder
+        );
+    }
+
+    public ApiResultResponse<List<UserGroupManagementAuthorizationLevel>> v2AuthorizationControllerGetGroupManagementAuthorization(
+            MockMvc mockMvc,
+            ResultMatcher resultMatcher,
+            Optional<String> userInfo,
+            List<String> userIds) throws Exception {
+        MockHttpServletRequestBuilder requestBuilder =
+                get
+                        (
+                                "/v2/auth/local/group/authorize/{userIds}", String.join(",", userIds)
+                        )
+                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_JSON);
+        userInfo.ifPresent(login -> requestBuilder.header(appProperties.getUserHeaderName(), jwtHelper.generateJwt(login)));
+        // create a ';' separated string with all the user ids ans associate it to the userIds path variable
+
+        return executeHttpRequest(
+                new TypeReference<>() {
+                },
+                mockMvc,
+                resultMatcher,
+                userInfo,
+                requestBuilder
+        );
+    }
+
+    public <T> ApiResultResponse<T> executeHttpRequest(
+            TypeReference<ApiResultResponse<T>> typeRef,
+            MockMvc mockMvc,
+            ResultMatcher resultMatcher,
+            Optional<String> userInfo,
+            MockHttpServletRequestBuilder requestBuilder) throws Exception {
+        userInfo.ifPresent(login -> requestBuilder.header(appProperties.getUserHeaderName(), jwtHelper.generateJwt(login)));
+
+        MvcResult result = mockMvc.perform(requestBuilder)
                 .andExpect(resultMatcher)
                 .andReturn();
-        Optional<ControllerLogicException> someException = Optional.ofNullable((ControllerLogicException) result.getResolvedException());
-        if (someException.isPresent()) {
-            throw someException.get();
+
+        if (result.getResolvedException() != null) {
+            throw result.getResolvedException();
         }
-        return new ObjectMapper().readValue(
-                result.getResponse().getContentAsString(),
-                new TypeReference<>() {
-                });
+        return objectMapper.readValue(result.getResponse().getContentAsString(), typeRef);
     }
 }

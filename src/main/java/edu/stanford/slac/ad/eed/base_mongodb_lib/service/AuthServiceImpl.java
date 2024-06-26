@@ -2,8 +2,11 @@ package edu.stanford.slac.ad.eed.base_mongodb_lib.service;
 
 import edu.stanford.slac.ad.eed.base_mongodb_lib.repository.AuthenticationTokenRepository;
 import edu.stanford.slac.ad.eed.base_mongodb_lib.repository.AuthorizationRepository;
+import edu.stanford.slac.ad.eed.base_mongodb_lib.repository.LocalGroupRepository;
 import edu.stanford.slac.ad.eed.baselib.api.v1.dto.*;
 import edu.stanford.slac.ad.eed.baselib.api.v1.mapper.AuthMapper;
+import edu.stanford.slac.ad.eed.baselib.api.v2.dto.*;
+import edu.stanford.slac.ad.eed.baselib.api.v2.mapper.LocalGroupMapper;
 import edu.stanford.slac.ad.eed.baselib.auth.JWTHelper;
 import edu.stanford.slac.ad.eed.baselib.config.AppProperties;
 import edu.stanford.slac.ad.eed.baselib.exception.AuthenticationTokenMalformed;
@@ -13,11 +16,15 @@ import edu.stanford.slac.ad.eed.baselib.exception.PersonNotFound;
 import edu.stanford.slac.ad.eed.baselib.model.AuthenticationToken;
 import edu.stanford.slac.ad.eed.baselib.model.Authorization;
 import edu.stanford.slac.ad.eed.baselib.model.AuthorizationOwnerType;
+import edu.stanford.slac.ad.eed.baselib.model.LocalGroup;
 import edu.stanford.slac.ad.eed.baselib.service.AuthService;
 import edu.stanford.slac.ad.eed.baselib.service.PeopleGroupService;
+import lombok.AllArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,15 +43,15 @@ import static edu.stanford.slac.ad.eed.baselib.utility.StringUtilities.normalize
  */
 @Log4j2
 @Service
-
 public class AuthServiceImpl extends AuthService {
     @Value("${spring.application.name}")
     private String appName;
     private final JWTHelper jwtHelper;
-
+    private final LocalGroupMapper localGroupMapper;
     private final AuthMapper authMapper;
     private final PeopleGroupService peopleGroupService;
     private final AppProperties appProperties;
+    private final LocalGroupRepository localGroupRepository;
     private final AuthorizationRepository authorizationRepository;
     private final AuthenticationTokenRepository authenticationTokenRepository;
 
@@ -58,12 +65,14 @@ public class AuthServiceImpl extends AuthService {
      * @param authorizationRepository       the authorization repository
      * @param authenticationTokenRepository the authentication token repository
      */
-    public AuthServiceImpl(JWTHelper jwtHelper, AuthMapper authMapper, AppProperties appProperties, PeopleGroupService peopleGroupService, AuthorizationRepository authorizationRepository, AuthenticationTokenRepository authenticationTokenRepository) {
+    public AuthServiceImpl(JWTHelper jwtHelper, LocalGroupMapper localGroupMapper, AuthMapper authMapper, AppProperties appProperties, PeopleGroupService peopleGroupService, LocalGroupRepository localGroupRepository, AuthorizationRepository authorizationRepository, AuthenticationTokenRepository authenticationTokenRepository) {
         super(appProperties);
         this.jwtHelper = jwtHelper;
+        this.localGroupMapper = localGroupMapper;
         this.authMapper = authMapper;
         this.appProperties = appProperties;
         this.peopleGroupService = peopleGroupService;
+        this.localGroupRepository = localGroupRepository;
         this.authorizationRepository = authorizationRepository;
         this.authenticationTokenRepository = authenticationTokenRepository;
     }
@@ -186,16 +195,15 @@ public class AuthServiceImpl extends AuthService {
 
         // get user authorizations inherited by group
         if (!isAppToken) {
-            // in case we have a user check also the groups that belongs to the user
-            List<GroupDTO> userGroups = peopleGroupService.findGroupByUserId(owner);
+            List<String> userGroups = getGroupByUserId(owner);
 
             // load all groups authorizations
             allAuth.addAll(
                     userGroups
                             .stream()
                             .map(
-                                    g -> authorizationRepository.findByOwnerAndOwnerTypeAndAuthorizationTypeIsGreaterThanEqualAndResourceStartingWith(
-                                            g.commonName(),
+                                    groupName -> authorizationRepository.findByOwnerAndOwnerTypeAndAuthorizationTypeIsGreaterThanEqualAndResourceStartingWith(
+                                            groupName,
                                             AuthorizationOwnerType.Group,
                                             authMapper.toModel(authorizationType).getValue(),
                                             resourcePrefix
@@ -224,6 +232,26 @@ public class AuthServiceImpl extends AuthService {
         return allAuth;
     }
 
+    private List<String> getGroupByUserId(String owner) {
+        List<String> userGroups = new ArrayList<>();
+        // in case we have a user check also the groups that belongs to the user
+        userGroups.addAll(
+                peopleGroupService.findGroupByUserId(owner)
+                        .stream()
+                        .map(GroupDTO::commonName)
+                        .toList()
+        );
+
+        // get all local group
+        userGroups.addAll(
+                localGroupRepository.findAllByMembersContains(owner)
+                        .stream()
+                        .map(LocalGroup::getName)
+                        .toList()
+        );
+        return userGroups;
+    }
+
     @Override
     public List<AuthorizationDTO> getAllAuthenticationForOwner(String owner, AuthorizationOwnerTypeDTO ownerType, String resourcePrefix, Optional<Boolean> allHigherAuthOnSameResource) {
         boolean isAppToken = appProperties.isAuthenticationToken(owner);
@@ -244,16 +272,15 @@ public class AuthServiceImpl extends AuthService {
 
         // get user authorizations inherited by group
         if (!isAppToken) {
-            // in case we have a user check also the groups that belongs to the user
-            List<GroupDTO> userGroups = peopleGroupService.findGroupByUserId(owner);
+            List<String> userGroups = getGroupByUserId(owner);
 
             // load all groups authorizations
             allAuth.addAll(
                     userGroups
                             .stream()
                             .map(
-                                    g -> authorizationRepository.findByOwnerAndOwnerTypeIsAndResourceStartingWith(
-                                            g.commonName(),
+                                    groupName -> authorizationRepository.findByOwnerAndOwnerTypeIsAndResourceStartingWith(
+                                            groupName,
                                             AuthorizationOwnerType.Group,
                                             resourcePrefix
 
@@ -301,15 +328,15 @@ public class AuthServiceImpl extends AuthService {
 // get user authorizations inherited by group
         if (!isAppToken) {
             // in case we have a user check also the groups that belongs to the user
-            List<GroupDTO> userGroups = peopleGroupService.findGroupByUserId(owner);
+            List<String> userGroups = getGroupByUserId(owner);
 
             // load all groups authorizations
             allAuth.addAll(
                     userGroups
                             .stream()
                             .map(
-                                    g -> authorizationRepository.findByOwnerAndOwnerTypeIs(
-                                            g.commonName(),
+                                    groupName -> authorizationRepository.findByOwnerAndOwnerTypeIs(
+                                            groupName,
                                             AuthorizationOwnerType.Group
 
                                     )
@@ -1123,6 +1150,182 @@ public class AuthServiceImpl extends AuthService {
         ).stream().map(
                 authMapper::toTokenDTO
         ).toList();
+    }
+
+    @Override
+    public boolean canManageGroup(Authentication authentication) {
+        boolean isAppToken = appProperties.isAuthenticationToken(authentication.getPrincipal().toString());
+        // get user authorizations
+        List<AuthorizationDTO> allAuth = new ArrayList<>(
+                wrapCatch(
+                        () -> authorizationRepository.findByOwnerAndOwnerTypeAndAuthorizationTypeIsGreaterThanEqualAndResourceStartingWith(
+                                authentication.getPrincipal().toString(),
+                                isAppToken ? AuthorizationOwnerType.Token : AuthorizationOwnerType.User,
+                                Authorization.Type.Admin.getValue(),
+                                "%s/group".formatted(
+                                        appProperties.getAppName()
+                                )
+                        ),
+                        -1,
+                        "AuthService::getAllAuthorization"
+                ).stream().map(
+                        authMapper::fromModel
+                ).toList()
+        );
+        return !allAuth.isEmpty();
+    }
+
+    @Override
+    public void authorizeUserIdToManageGroup(String userId) {
+        boolean isAppToken = appProperties.isAuthenticationToken(userId);
+        wrapCatch(
+                () -> authorizationRepository.ensureAuthorization(
+                        Authorization.builder()
+                                .authorizationType(Authorization.Type.Admin.getValue())
+                                .owner(userId)
+                                .ownerType(isAppToken ? AuthorizationOwnerType.Token : AuthorizationOwnerType.User)
+                                .resource("%s/group".formatted(
+                                        appProperties.getAppName()
+                                ))
+                                .creationBy(appProperties.getAppName())
+                                .build()
+                ),
+                -1,
+                "AuthService::addNewAuthorization"
+        );
+    }
+
+    @Override
+    public void removeAuthorizationToUserIdToManageGroup(String userId) {
+        wrapCatch(
+                () -> {
+                    authorizationRepository.deleteByOwnerIsAndResourceIsAndAuthorizationTypeIs(
+                            userId,
+                            "%s/group".formatted(
+                                    appProperties.getAppName()
+                            ),
+                            Authorization.Type.Admin.getValue()
+                    );
+                    return null;
+                },
+                -1,
+                "AuthService::addNewAuthorization"
+        );
+    }
+
+    @Override
+    public void manageAuthorizationOnGroup(AuthorizationGroupManagementDTO authorizationGroupManagementDTO) {
+        if (authorizationGroupManagementDTO == null) return;
+
+        // add new users
+        if (authorizationGroupManagementDTO.addUsers() != null) {
+            authorizationGroupManagementDTO.addUsers().forEach(u -> authorizeUserIdToManageGroup(u));
+        }
+
+        // remove users
+        if (authorizationGroupManagementDTO.removeUsers() != null) {
+            authorizationGroupManagementDTO.removeUsers().forEach(u -> removeAuthorizationToUserIdToManageGroup(u));
+        }
+
+    }
+
+    @Override
+    public List<UserGroupManagementAuthorizationLevel> getGroupManagementAuthorization(List<String> userIds) {
+        List<Authorization> authFound = wrapCatch(
+                () -> authorizationRepository.findByResourceIsAndOwnerIn("%s/group".formatted(appProperties.getAppName()), userIds),
+                1
+        );
+        var result = authFound.stream().map(
+                auth -> UserGroupManagementAuthorizationLevel.builder()
+                        .user(peopleGroupService.findPersonByEMail(auth.getOwner()))
+                        .canManageGroup(true)
+                        .build()
+        ).toList();
+        // create a new editable list
+        var mutableResult = new ArrayList<>(result);
+        //add not found user with authorization at false
+        userIds.stream().filter(
+                u -> result.stream().noneMatch(
+                        r -> r.user().mail().compareToIgnoreCase(u) == 0
+                )
+        ).forEach(
+                u -> mutableResult.add(
+                        UserGroupManagementAuthorizationLevel.builder()
+                                .user(peopleGroupService.findPersonByEMail(u))
+                                .canManageGroup(checkForRoot(new UsernamePasswordAuthenticationToken(u, null)))
+                                .build()
+                )
+        );
+        return mutableResult;
+    }
+
+    @Override
+    public String createLocalGroup(NewLocalGroupDTO newGroupDTO) {
+        LocalGroup localGroup = localGroupMapper.fromDTO(newGroupDTO);
+        LocalGroup savedGroup = wrapCatch(
+                () -> localGroupRepository.save(localGroup),
+                -1,
+                "AuthService::createLocalGroup"
+        );
+        return savedGroup.getId();
+    }
+
+    @Override
+    public void updateLocalGroup(String localGroupId, UpdateLocalGroupDTO updateGroupDTO) {
+        LocalGroup foundLocalGroup = wrapCatch(
+                () -> localGroupRepository.findById(localGroupId),
+                -1
+        ).orElseThrow(
+                () -> ControllerLogicException.builder()
+                        .errorCode(-2)
+                        .errorMessage("Local group of id %s not found".formatted(localGroupId))
+                        .errorDomain("AuthService::updateLocalGroup")
+                        .build()
+        );
+
+        wrapCatch(
+                () -> localGroupRepository.save(
+                        localGroupMapper.updateModel(updateGroupDTO, foundLocalGroup)
+                ),
+                -3
+        );
+    }
+
+    @Override
+    public void deleteLocalGroup(String localGroupId) {
+        wrapCatch(
+                () -> {
+                    localGroupRepository.deleteById(localGroupId);
+                    return null;
+                },
+                -1
+        );
+    }
+
+    @Override
+    public List<LocalGroupDTO> findLocalGroup(LocalGroupQueryParameterDTO query) {
+        return wrapCatch(
+                () -> localGroupRepository.findAll(localGroupMapper.toQuery(query)),
+                -1
+        ).stream().map(
+                localGroupMapper::toDTO
+        ).toList();
+    }
+
+    @Override
+    public LocalGroupDTO findLocalGroupById(String localGroupId) {
+        return wrapCatch(
+                () -> localGroupRepository.findById(localGroupId),
+                -1
+        ).map(
+                localGroupMapper::toDTO
+        ).orElseThrow(
+                () -> ControllerLogicException.builder()
+                        .errorCode(-2)
+                        .errorMessage("Local group of id %s not found".formatted(localGroupId))
+                        .errorDomain("AuthService::findLocalGroupById")
+                        .build()
+        );
     }
 
 }

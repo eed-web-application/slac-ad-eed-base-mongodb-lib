@@ -4,12 +4,13 @@ import edu.stanford.slac.ad.eed.base_mongodb_lib.repository.AuthorizationReposit
 import edu.stanford.slac.ad.eed.baselib.api.v1.dto.AuthorizationDTO;
 import edu.stanford.slac.ad.eed.baselib.api.v1.dto.AuthorizationOwnerTypeDTO;
 import edu.stanford.slac.ad.eed.baselib.api.v1.dto.AuthorizationTypeDTO;
+import edu.stanford.slac.ad.eed.baselib.api.v2.dto.NewLocalGroupDTO;
 import edu.stanford.slac.ad.eed.baselib.config.AppProperties;
 import edu.stanford.slac.ad.eed.baselib.model.Authorization;
+import edu.stanford.slac.ad.eed.baselib.model.LocalGroup;
 import edu.stanford.slac.ad.eed.baselib.service.AuthService;
 import org.assertj.core.api.AssertionsForClassTypes;
 import org.assertj.core.api.Condition;
-import org.assertj.core.data.Index;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -57,6 +58,7 @@ public class AuthorizationLogicTest {
     @BeforeEach
     public void preTest() {
         mongoTemplate.remove(new Query(), Authorization.class);
+        mongoTemplate.remove(new Query(), LocalGroup.class);
     }
 
 
@@ -471,17 +473,6 @@ public class AuthorizationLogicTest {
                 )
         );
 
-        Authorization newAuthGroup2 = assertDoesNotThrow(
-                () -> authorizationRepository.save(
-                        Authorization.builder()
-                                .authorizationType(Authorization.Type.Read.getValue())
-                                .owner("group-name-1")
-                                .ownerType(Group)
-                                .resource("/r1")
-                                .build()
-                )
-        );
-
         assertDoesNotThrow(
                 () -> authService.deleteAuthorizationForResourcePrefix("/r1", AuthorizationOwnerTypeDTO.Group)
         );
@@ -507,7 +498,7 @@ public class AuthorizationLogicTest {
     }
 
     @Test
-    public void testFindAuthoriztionForSpecificOwnerOTypeAndResource() {
+    public void testFindAuthorizationForSpecificOwnerOTypeAndResource() {
         appProperties.getRootUserList().clear();
         Authorization newAuthUser1 = assertDoesNotThrow(
                 () -> authorizationRepository.save(
@@ -597,7 +588,7 @@ public class AuthorizationLogicTest {
     }
 
     @Test
-    public void testFindAuthoriztionForSpecificOwnerOType() {
+    public void testFindAuthorizationForSpecificOwnerOType() {
         appProperties.getRootUserList().clear();
         Authorization newAuthUser1 = assertDoesNotThrow(
                 () -> authorizationRepository.save(
@@ -684,6 +675,94 @@ public class AuthorizationLogicTest {
                 .anySatisfy(auth -> assertThat(auth).is(AuthorizationDTOIs.of("/r1", Admin)))
                 .anySatisfy(auth -> assertThat(auth).is(AuthorizationDTOIs.of("/r1", Read)))
                 .anySatisfy(auth -> assertThat(auth).is(AuthorizationDTOIs.of("/r2", Read)));
+    }
+
+    @Test
+    public void checkAuthorizationUsingLocalGroup() {
+        appProperties.getRootUserList().clear();
+
+
+        authService.createLocalGroup(
+                NewLocalGroupDTO
+                        .builder()
+                        .name("local-group-1")
+                        .description("local-group-1")
+                        .members(List.of("user3@slac.stanford.edu"))
+                        .build()
+        );
+        appProperties.getRootUserList().clear();
+        Authorization newAuthUser1 = assertDoesNotThrow(
+                () -> authorizationRepository.save(
+                        Authorization.builder()
+                                .authorizationType(Authorization.Type.Read.getValue())
+                                .owner("user1@slac.stanford.edu")
+                                .ownerType(User)
+                                .resource("/r1")
+                                .build()
+                )
+        );
+        Authorization newAuthUser21 = assertDoesNotThrow(
+                () -> authorizationRepository.save(
+                        Authorization.builder()
+                                .authorizationType(Authorization.Type.Write.getValue())
+                                .owner("user2@slac.stanford.edu")
+                                .ownerType(User)
+                                .resource("/r1")
+                                .build()
+                )
+        );
+        Authorization newAuthUser22 = assertDoesNotThrow(
+                () -> authorizationRepository.save(
+                        Authorization.builder()
+                                .authorizationType(Authorization.Type.Read.getValue())
+                                .owner("user2@slac.stanford.edu")
+                                .ownerType(User)
+                                .resource("/r2")
+                                .build()
+                )
+        );
+        Authorization newAuthGroup11 = assertDoesNotThrow(
+                () -> authorizationRepository.save(
+                        Authorization.builder()
+                                .authorizationType(Authorization.Type.Admin.getValue())
+                                .owner("local-group-1")
+                                .ownerType(Group)
+                                .resource("/r1")
+                                .build()
+                )
+        );
+        Authorization newAuthGroup12 = assertDoesNotThrow(
+                () -> authorizationRepository.save(
+                        Authorization.builder()
+                                .authorizationType(Authorization.Type.Read.getValue())
+                                .owner("local-group-1")
+                                .ownerType(Group)
+                                .resource("/r2")
+                                .build()
+                )
+        );
+
+
+        var userAuthorization = assertDoesNotThrow(
+                () -> authService.getAllAuthenticationForOwner(
+                        "user1@slac.stanford.edu",
+                        AuthorizationOwnerTypeDTO.User,
+                        Optional.of(true)
+                )
+        );
+
+        userAuthorization = assertDoesNotThrow(
+                () -> authService.getAllAuthenticationForOwner(
+                        "user3@slac.stanford.edu",
+                        AuthorizationOwnerTypeDTO.User,
+                        Optional.empty()
+                )
+        );
+        assertThat(userAuthorization)
+                .hasSize(2)
+                .anySatisfy(auth -> assertThat(auth).is(AuthorizationDTOIs.of("/r1", Admin)))
+                .anySatisfy(auth -> assertThat(auth).is(AuthorizationDTOIs.of("/r2", Read)));
+
     }
 
     /**
