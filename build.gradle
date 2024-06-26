@@ -38,7 +38,7 @@ dependencies {
             'com.fasterxml.jackson.core:jackson-databind',
             'org.springframework.boot:spring-boot-starter-data-mongodb'
     // eed base lib dependency
-    implementation 'edu.stanford.slac:slac-ad-eed-baselib:0.1.57-PullRequest0053.25'
+    implementation 'edu.stanford.slac:slac-ad-eed-baselib:0.1.57-PullRequest0053.28'
 
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'

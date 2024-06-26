@@ -2,6 +2,7 @@ package edu.stanford.slac.ad.eed.base_mongodb_lib.service;
 
 import edu.stanford.slac.ad.eed.base_mongodb_lib.repository.AuthenticationTokenRepository;
 import edu.stanford.slac.ad.eed.base_mongodb_lib.repository.AuthorizationRepository;
+import edu.stanford.slac.ad.eed.base_mongodb_lib.utility.InitAuthorizationIndex;
 import edu.stanford.slac.ad.eed.baselib.api.v1.dto.PersonDTO;
 import edu.stanford.slac.ad.eed.baselib.api.v2.dto.*;
 import edu.stanford.slac.ad.eed.baselib.model.Authorization;
@@ -50,6 +51,8 @@ public class LocalGroupTest {
         Mockito.reset(authenticationTokenRepository);
         mongoTemplate.remove(new Query(), Authorization.class);
         mongoTemplate.remove(new Query(), LocalGroup.class);
+        InitAuthorizationIndex initAuthorizationIndex = new InitAuthorizationIndex(mongoTemplate);
+        initAuthorizationIndex.updateIndex();
     }
 
     @Test
@@ -191,5 +194,37 @@ public class LocalGroupTest {
         assertThat(groupFound.get(0).description()).isEqualTo("description updated");
         assertThat(groupFound.get(0).members().size()).isEqualTo(2);
         assertThat(groupFound.get(0).members()).extracting("mail").contains("user2@slac.stanford.edu","user2@slac.stanford.edu");
+    }
+
+    @Test
+    public void testFullTextSearch() {
+        // generate 100 random local group
+        for(int i=0; i<100; i++) {
+            int finalI = i;
+            assertDoesNotThrow(
+                    () -> authService.createLocalGroup(
+                            NewLocalGroupDTO
+                                    .builder()
+                                    .name("test-%d".formatted(finalI))
+                                    .description("test-%d description-%d".formatted(finalI, finalI))
+                                    .members(List.of("user2@slac.stanford.edu", "user2@slac.stanford.edu"))
+                                    .build()
+                    )
+            );
+        }
+
+        // found with text search
+        var groupFound = assertDoesNotThrow(
+                ()->authService.findLocalGroup(
+                        LocalGroupQueryParameterDTO
+                                .builder()
+                                .search("\"test-10\"")
+                                .limit(10)
+                                .build()
+                )
+        );
+        assertThat(groupFound).isNotNull();
+        assertThat(groupFound.size()).isEqualTo(1);
+        assertThat(groupFound.get(0).name()).isEqualTo("test-10");
     }
 }

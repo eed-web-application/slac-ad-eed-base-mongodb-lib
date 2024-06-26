@@ -360,6 +360,40 @@ public class TestControllerHelperService {
         );
     }
 
+    /**
+     * Find local group by id
+     *
+     * @param mockMvc
+     * @param resultMatcher
+     * @param userInfo
+     * @param localGroupId
+     * @return
+     * @throws Exception
+     */
+    public ApiResultResponse<LocalGroupDTO> v2AuthorizationControllerFindLocalGroupById(
+            MockMvc mockMvc,
+            ResultMatcher resultMatcher,
+            Optional<String> userInfo,
+            String localGroupId
+    ) throws Exception {
+        MockHttpServletRequestBuilder requestBuilder =
+                get
+                        (
+                                "/v2/auth/local/group/{localGroupId}", localGroupId
+                        )
+                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_JSON);
+        userInfo.ifPresent(login -> requestBuilder.header(appProperties.getUserHeaderName(), jwtHelper.generateJwt(login)));
+        return executeHttpRequest(
+                new TypeReference<>() {
+                },
+                mockMvc,
+                resultMatcher,
+                userInfo,
+                requestBuilder
+        );
+    }
+
     public ApiResultResponse<Boolean> v2AuthorizationControllerManageGroupManagementAuthorization(
             MockMvc mockMvc,
             ResultMatcher resultMatcher,

@@ -1294,4 +1294,20 @@ public class AuthServiceImpl extends AuthService {
         ).toList();
     }
 
+    @Override
+    public LocalGroupDTO findLocalGroupById(String localGroupId) {
+        return wrapCatch(
+                () -> localGroupRepository.findById(localGroupId),
+                -1
+        ).map(
+                localGroupMapper::toDTO
+        ).orElseThrow(
+                () -> ControllerLogicException.builder()
+                        .errorCode(-2)
+                        .errorMessage("Local group of id %s not found".formatted(localGroupId))
+                        .errorDomain("AuthService::findLocalGroupById")
+                        .build()
+        );
+    }
+
 }
