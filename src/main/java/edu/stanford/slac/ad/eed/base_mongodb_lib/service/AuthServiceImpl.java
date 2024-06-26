@@ -195,16 +195,30 @@ public class AuthServiceImpl extends AuthService {
 
         // get user authorizations inherited by group
         if (!isAppToken) {
+            List<String> userGroups = new ArrayList<>();
             // in case we have a user check also the groups that belongs to the user
-            List<GroupDTO> userGroups = peopleGroupService.findGroupByUserId(owner);
+            userGroups.addAll(
+                    peopleGroupService.findGroupByUserId(owner)
+                            .stream()
+                            .map(GroupDTO::commonName)
+                            .toList()
+            );
+
+            // get all local group
+            userGroups.addAll(
+                    localGroupRepository.findAllByMembersContains(owner)
+                            .stream()
+                            .map(LocalGroup::getName)
+                            .toList()
+            );
 
             // load all groups authorizations
             allAuth.addAll(
                     userGroups
                             .stream()
                             .map(
-                                    g -> authorizationRepository.findByOwnerAndOwnerTypeAndAuthorizationTypeIsGreaterThanEqualAndResourceStartingWith(
-                                            g.commonName(),
+                                    groupName -> authorizationRepository.findByOwnerAndOwnerTypeAndAuthorizationTypeIsGreaterThanEqualAndResourceStartingWith(
+                                            groupName,
                                             AuthorizationOwnerType.Group,
                                             authMapper.toModel(authorizationType).getValue(),
                                             resourcePrefix

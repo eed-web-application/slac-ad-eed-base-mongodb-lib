@@ -227,4 +227,5 @@ public class LocalGroupTest {
         assertThat(groupFound.size()).isEqualTo(1);
         assertThat(groupFound.get(0).name()).isEqualTo("test-10");
     }
+
 }
