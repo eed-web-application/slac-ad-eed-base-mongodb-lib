@@ -195,22 +195,7 @@ public class AuthServiceImpl extends AuthService {
 
         // get user authorizations inherited by group
         if (!isAppToken) {
-            List<String> userGroups = new ArrayList<>();
-            // in case we have a user check also the groups that belongs to the user
-            userGroups.addAll(
-                    peopleGroupService.findGroupByUserId(owner)
-                            .stream()
-                            .map(GroupDTO::commonName)
-                            .toList()
-            );
-
-            // get all local group
-            userGroups.addAll(
-                    localGroupRepository.findAllByMembersContains(owner)
-                            .stream()
-                            .map(LocalGroup::getName)
-                            .toList()
-            );
+            List<String> userGroups = getGroupByUserId(owner);
 
             // load all groups authorizations
             allAuth.addAll(
@@ -247,6 +232,26 @@ public class AuthServiceImpl extends AuthService {
         return allAuth;
     }
 
+    private List<String> getGroupByUserId(String owner) {
+        List<String> userGroups = new ArrayList<>();
+        // in case we have a user check also the groups that belongs to the user
+        userGroups.addAll(
+                peopleGroupService.findGroupByUserId(owner)
+                        .stream()
+                        .map(GroupDTO::commonName)
+                        .toList()
+        );
+
+        // get all local group
+        userGroups.addAll(
+                localGroupRepository.findAllByMembersContains(owner)
+                        .stream()
+                        .map(LocalGroup::getName)
+                        .toList()
+        );
+        return userGroups;
+    }
+
     @Override
     public List<AuthorizationDTO> getAllAuthenticationForOwner(String owner, AuthorizationOwnerTypeDTO ownerType, String resourcePrefix, Optional<Boolean> allHigherAuthOnSameResource) {
         boolean isAppToken = appProperties.isAuthenticationToken(owner);
@@ -267,16 +272,15 @@ public class AuthServiceImpl extends AuthService {
 
         // get user authorizations inherited by group
         if (!isAppToken) {
-            // in case we have a user check also the groups that belongs to the user
-            List<GroupDTO> userGroups = peopleGroupService.findGroupByUserId(owner);
+            List<String> userGroups = getGroupByUserId(owner);
 
             // load all groups authorizations
             allAuth.addAll(
                     userGroups
                             .stream()
                             .map(
-                                    g -> authorizationRepository.findByOwnerAndOwnerTypeIsAndResourceStartingWith(
-                                            g.commonName(),
+                                    groupName -> authorizationRepository.findByOwnerAndOwnerTypeIsAndResourceStartingWith(
+                                            groupName,
                                             AuthorizationOwnerType.Group,
                                             resourcePrefix
 
@@ -324,15 +328,15 @@ public class AuthServiceImpl extends AuthService {
 // get user authorizations inherited by group
         if (!isAppToken) {
             // in case we have a user check also the groups that belongs to the user
-            List<GroupDTO> userGroups = peopleGroupService.findGroupByUserId(owner);
+            List<String> userGroups = getGroupByUserId(owner);
 
             // load all groups authorizations
             allAuth.addAll(
                     userGroups
                             .stream()
                             .map(
-                                    g -> authorizationRepository.findByOwnerAndOwnerTypeIs(
-                                            g.commonName(),
+                                    groupName -> authorizationRepository.findByOwnerAndOwnerTypeIs(
+                                            groupName,
                                             AuthorizationOwnerType.Group
 
                                     )
