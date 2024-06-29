@@ -38,7 +38,7 @@ dependencies {
             'com.fasterxml.jackson.core:jackson-databind',
             'org.springframework.boot:spring-boot-starter-data-mongodb'
     // eed base lib dependency
-    implementation 'edu.stanford.slac:slac-ad-eed-baselib:0.1.57'
+    implementation 'edu.stanford.slac:slac-ad-eed-baselib:0.1.58-PullRequest0056.6'
 
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
@@ -46,6 +46,8 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test',
             'org.springframework.boot:spring-boot-starter-data-ldap',
             'com.unboundid:unboundid-ldapsdk:6.0.8'
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
 }
 
 publishing {
