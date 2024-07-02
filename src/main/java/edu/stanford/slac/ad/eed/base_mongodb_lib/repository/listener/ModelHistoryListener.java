@@ -17,6 +17,7 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 @Component
 @Scope("prototype")
@@ -111,11 +112,16 @@ public class ModelHistoryListener {
                             field.getType().getName().startsWith("java.time")
             ) {
                 String filedCompositeName = parentFieldName != null ? parentFieldName + "." + field.getName() : field.getName();
-                changes.add(ModelChange.builder()
-                        .fieldName(filedCompositeName)
-                        .oldValue(oldValue != null ? oldValue.toString() : null)
-                        .newValue(newValue != null ? newValue.toString() : null)
-                        .build());
+                oldValue = oldValue != null ? oldValue.toString() : null;
+                newValue = newValue != null ? newValue.toString() : null;
+                if (Objects.equals(oldValue, newValue) == false) {
+                    changes.add(ModelChange.builder()
+                            .fieldName(filedCompositeName)
+                            .oldValue(oldValue)
+                            .newValue(newValue)
+                            .build());
+                }
+
             } else {
                 Field[] innerFields = field.getType().getDeclaredFields();
                 for (Field innerField : innerFields) {

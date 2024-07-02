@@ -75,8 +75,6 @@ public class ModelHistoryServiceTest {
         var savedTestModel = assertDoesNotThrow(() -> testChangeModel1Repository.save(
                         TestChangeModelPrimitive
                                 .builder()
-                                .boolField1(true)
-                                .stringField1("string1")
                                 .build()
                 )
         );
