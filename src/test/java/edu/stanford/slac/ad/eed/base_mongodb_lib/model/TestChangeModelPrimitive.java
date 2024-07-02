@@ -7,14 +7,30 @@ import lombok.Builder;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 @Data
 @Builder(toBuilder = true)
 @AllArgsConstructor
-public class TestChangeModel1 {
+@CaptureChanges
+public class TestChangeModelPrimitive {
     @Id
     private String id;
     @CaptureChanges
     private String stringField1;
     @CaptureChanges
     private Boolean boolField1;
+    @CaptureChanges
+    private Integer intField1;
+    @CaptureChanges
+    private Double doubleField1;
+    @CaptureChanges
+    private Long longField1;
+    @CaptureChanges
+    private Float floatField1;
+    @CaptureChanges
+    private LocalDate dateField1;
+    @CaptureChanges
+    private LocalDateTime dateTimeField1;
 }

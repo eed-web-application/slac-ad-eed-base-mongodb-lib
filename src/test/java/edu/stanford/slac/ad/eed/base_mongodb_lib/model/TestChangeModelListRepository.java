@@ -2,5 +2,5 @@ package edu.stanford.slac.ad.eed.base_mongodb_lib.model;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
 
-public interface TestChangeModel1Repository extends MongoRepository<TestChangeModel1, String> {
+public interface TestChangeModelListRepository extends MongoRepository<TestChangeModelList, String> {
 }
