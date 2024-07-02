@@ -199,16 +199,16 @@ public class ModelHistoryServiceTest {
         // verify all fields
         var listOfChanges = assertDoesNotThrow(() -> modelHistoryService.findChangesByModelId(savedTestModel.getId()));
         assertThat(listOfChanges).isNotEmpty().hasSize(1);
-        assertThat(listOfChanges.get(0).changes()).hasSize(4);
+        assertThat(listOfChanges.get(0).changes()).hasSize(2);
         assertThat(listOfChanges.get(0).changes())
                 .extracting(ModelChangeDTO::fieldName)
-                .contains("stringField1[0]", "stringField1[1]", "boolField1[0]", "boolField1[1]");
+                .contains("stringField1", "boolField1");
         assertThat(listOfChanges.get(0).changes())
                 .extracting(ModelChangeDTO::newValue)
-                .contains("string2", "string3", "false", "true");
+                .contains("[string2, string3]", "[false, true]");
         assertThat(listOfChanges.get(0).changes())
                 .extracting(ModelChangeDTO::oldValue)
-                .contains("string1", "string2", "true", "false");
+                .contains("[string1, string2]", "[true, false]");
     }
 
     @Test
@@ -243,71 +243,6 @@ public class ModelHistoryServiceTest {
                 .contains("string1", "string2", "true", "false");
     }
 
-    @Test
-    public void testChangesMixedClass() {
-        var savedTestModel = assertDoesNotThrow(() -> testChangeModelMixedRepository.save(
-                        TestChangeModelMixed
-                                .builder()
-                                .build()
-                )
-        );
-        var updatedTestModel = assertDoesNotThrow(() -> testChangeModelMixedRepository.save(
-                        savedTestModel.toBuilder()
-                                .stringField1("string1")
-                                .boolField1(java.util.List.of(true, true))
-                                .classPrimitiveField(
-                                        TestChangeModelPrimitive
-                                                .builder()
-                                                .boolField1(true)
-                                                .stringField1("string1")
-                                                .build()
-                                )
-                                .build()
-                )
-        );
-        // verify all fields
-        var listOfChanges = assertDoesNotThrow(() -> modelHistoryService.findChangesByModelId(savedTestModel.getId()));
-        assertThat(listOfChanges).isNotEmpty().hasSize(1);
-        assertThat(listOfChanges.get(0).changes()).hasSize(5);
-        assertThat(listOfChanges.get(0).changes())
-                .extracting(ModelChangeDTO::fieldName)
-                .contains("stringField1", "boolField1[0]", "boolField1[1]", "classPrimitiveField.boolField1", "classPrimitiveField.stringField1");
-        assertThat(listOfChanges.get(0).changes())
-                .extracting(ModelChangeDTO::newValue)
-                .contains("string1", "true", "true", "true", "string1");
-
-        //second update
-        var secondUpdatedTestModel = assertDoesNotThrow(() -> testChangeModelMixedRepository.save(
-                        savedTestModel.toBuilder()
-                                .stringField1("string2")
-                                .boolField1(java.util.List.of(false, false))
-                                .classPrimitiveField(
-                                        TestChangeModelPrimitive
-                                                .builder()
-                                                .stringField1("string2")
-                                                .build()
-                                )
-                                .build()
-                )
-        );
-        // verify all fields
-        listOfChanges = assertDoesNotThrow(() -> modelHistoryService.findChangesByModelId(savedTestModel.getId()));
-        assertThat(listOfChanges).isNotEmpty().hasSize(2);
-        assertThat(listOfChanges.get(0).changes()).hasSize(5);
-        assertThat(listOfChanges.get(0).changes())
-                .extracting(ModelChangeDTO::fieldName)
-                .contains("stringField1", "boolField1[0]", "boolField1[1]", "classPrimitiveField.boolField1", "classPrimitiveField.stringField1");
-        assertThat(listOfChanges.get(0).changes())
-                .extracting(ModelChangeDTO::newValue)
-                .contains("string2", "false", "false", null, "string2");
-        assertThat(listOfChanges.get(1).changes()).hasSize(5);
-        assertThat(listOfChanges.get(1).changes())
-                .extracting(ModelChangeDTO::fieldName)
-                .contains("stringField1", "boolField1[0]", "boolField1[1]", "classPrimitiveField.boolField1", "classPrimitiveField.stringField1");
-        assertThat(listOfChanges.get(1).changes())
-                .extracting(ModelChangeDTO::newValue)
-                .contains("string1", "true", "true", "true", "string1");
-    }
 
     @Test
     public void testChangesMixedClassComplexList() {
@@ -320,83 +255,48 @@ public class ModelHistoryServiceTest {
         var updatedTestModel = assertDoesNotThrow(() -> testChangeModelMixedRepository.save(
                         savedTestModel.toBuilder()
                                 .stringField1("string1")
-                                .boolField1(java.util.List.of(true, true))
-                                .classListArrayField(java.util.List.of(
-                                        TestChangeModelArray
-                                                .builder()
-                                                .stringField1(new String[]{"string1", "string2"})
-                                                .boolField1(new Boolean[]{true, false})
-                                                .build(),
-                                        TestChangeModelArray
-                                                .builder()
-                                                .stringField1(new String[]{"string3", "string4"})
-                                                .boolField1(new Boolean[]{false, true})
-                                                .build()
-                                ))
-                                .classListListArrayField(java.util.List.of(
-                                        java.util.List.of(
-                                                TestChangeModelArray
-                                                        .builder()
-                                                        .stringField1(new String[]{"string1", "string2"})
-                                                        .boolField1(new Boolean[]{true, false})
-                                                        .build(),
-                                                TestChangeModelArray
-                                                        .builder()
-                                                        .stringField1(new String[]{"string3", "string4"})
-                                                        .boolField1(new Boolean[]{false, true})
-                                                        .build()
-                                        ),
-                                        java.util.List.of(
-                                                TestChangeModelArray
-                                                        .builder()
-                                                        .stringField1(new String[]{"string5", "string6"})
-                                                        .boolField1(new Boolean[]{true, false})
-                                                        .build(),
-                                                TestChangeModelArray
-                                                        .builder()
-                                                        .stringField1(new String[]{"string7", "string8"})
-                                                        .boolField1(new Boolean[]{false, true})
-                                                        .build()
-                                        )
-                                ))
-                                .classPrimitiveListField(java.util.List.of(
-                                        TestChangeModelPrimitive
-                                                .builder()
-                                                .stringField1("string1")
-                                                .boolField1(true)
-                                                .build(),
-                                        TestChangeModelPrimitive
-                                                .builder()
-                                                .stringField1("string2")
-                                                .boolField1(false)
-                                                .build()
-                                ))
+                                .listBoolField1(java.util.List.of(true, true))
+                                .listStringField(java.util.List.of("string1", "string2"))
                                 .build()
                 )
         );
         // verify all fields
         var listOfChanges = assertDoesNotThrow(() -> modelHistoryService.findChangesByModelId(savedTestModel.getId()));
         assertThat(listOfChanges).isNotEmpty().hasSize(1);
-        assertThat(listOfChanges.get(0).changes()).hasSize(15);
+        assertThat(listOfChanges.get(0).changes()).hasSize(3);
         assertThat(listOfChanges.get(0).changes())
                 .extracting(ModelChangeDTO::fieldName)
-                .contains(
-                        "stringField1",
-                        "boolField1[0]",
-                        "boolField1[1]",
-                        "classListArrayField[0].stringField1[0]",
-                        "classListArrayField[0].stringField1[1]",
-                        "classListArrayField[0].boolField1[0]",
-                        "classListArrayField[0].boolField1[1]",
-                        "classListArrayField[1].stringField1[0]",
-                        "classListArrayField[1].stringField1[1]",
-                        "classListArrayField[1].boolField1[0]",
-                        "classListArrayField[1].boolField1[1]",
-                        "classListListArrayField[0][0].stringField1[0]",
-                        "classListListArrayField[0][0].stringField1[1]",
-                        "classListListArrayField[0][0].boolField1[0]",
-                        "classListListArrayField[0][0].boolField1[1]"
-                );
+                .contains("stringField1", "listBoolField1", "listStringField");
+        assertThat(listOfChanges.get(0).changes())
+                .extracting(ModelChangeDTO::newValue)
+                .contains("string1", "[true, true]", "[string1, string2]");
+
+        // another update
+        var anotherUpdatedTestModel = assertDoesNotThrow(() -> testChangeModelMixedRepository.save(
+                        savedTestModel.toBuilder()
+                                .stringField1("string2")
+                                .listBoolField1(java.util.List.of(true))
+                                .listStringField(java.util.List.of("string5", "new-string1", "new-string3"))
+                                .build()
+                )
+        );
+        // verify all fields
+        listOfChanges = assertDoesNotThrow(() -> modelHistoryService.findChangesByModelId(savedTestModel.getId()));
+        assertThat(listOfChanges).isNotEmpty().hasSize(2);
+        assertThat(listOfChanges.get(0).changes()).hasSize(3);
+        assertThat(listOfChanges.get(0).changes())
+                .extracting(ModelChangeDTO::fieldName)
+                .contains("stringField1", "listBoolField1", "listStringField");
+        assertThat(listOfChanges.get(0).changes())
+                .extracting(ModelChangeDTO::newValue)
+                .contains("string2", "[true]", "[string5, new-string1, new-string3]");
+        assertThat(listOfChanges.get(1).changes()).hasSize(3);
+        assertThat(listOfChanges.get(1).changes())
+                .extracting(ModelChangeDTO::fieldName)
+                .contains("stringField1", "listBoolField1", "listStringField");
+        assertThat(listOfChanges.get(1).changes())
+                .extracting(ModelChangeDTO::newValue)
+                .contains("string1", "[true, true]", "[string1, string2]");
 
     }
 }

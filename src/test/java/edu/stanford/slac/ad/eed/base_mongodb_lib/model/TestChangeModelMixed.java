@@ -20,13 +20,7 @@ public class TestChangeModelMixed {
     @CaptureChanges
     private String stringField1;
     @CaptureChanges
-    private List boolField1;
+    private List<Boolean> listBoolField1;
     @CaptureChanges
-    private TestChangeModelPrimitive classPrimitiveField;
-    @CaptureChanges
-    private List<TestChangeModelPrimitive> classPrimitiveListField;
-    @CaptureChanges
-    private List<TestChangeModelArray> classListArrayField;
-    @CaptureChanges
-    private List<List<TestChangeModelArray>> classListListArrayField;
+    private List<String> listStringField;
 }

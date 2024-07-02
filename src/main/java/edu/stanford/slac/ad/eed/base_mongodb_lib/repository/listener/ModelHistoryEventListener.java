@@ -3,12 +3,14 @@ package edu.stanford.slac.ad.eed.base_mongodb_lib.repository.listener;
 import edu.stanford.slac.ad.eed.baselib.model.CaptureChanges;
 import edu.stanford.slac.ad.eed.baselib.model.ModelChangesHistory;
 import lombok.AllArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.mongodb.core.mapping.event.AfterSaveEvent;
 import org.springframework.data.mongodb.core.mapping.event.BeforeSaveEvent;
 import org.springframework.stereotype.Component;
 
 @Component
+@ConditionalOnProperty(name = "edu.stanford.slac.ad.eed.baselib.enable-model-change-history", havingValue = "true", matchIfMissing = false)
 @AllArgsConstructor
 public class ModelHistoryEventListener {
     private final ModelHistoryListenerFactory modelHistoryListenerFactory;
