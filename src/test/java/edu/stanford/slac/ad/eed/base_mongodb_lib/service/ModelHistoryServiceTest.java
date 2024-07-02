@@ -231,16 +231,16 @@ public class ModelHistoryServiceTest {
         // verify all fields
         var listOfChanges = assertDoesNotThrow(() -> modelHistoryService.findChangesByModelId(savedTestModel.getId()));
         assertThat(listOfChanges).isNotEmpty().hasSize(1);
-        assertThat(listOfChanges.get(0).changes()).hasSize(4);
+        assertThat(listOfChanges.get(0).changes()).hasSize(2);
         assertThat(listOfChanges.get(0).changes())
                 .extracting(ModelChangeDTO::fieldName)
-                .contains("stringField1[0]", "stringField1[1]", "boolField1[0]", "boolField1[1]");
+                .contains("stringField1", "boolField1");
         assertThat(listOfChanges.get(0).changes())
                 .extracting(ModelChangeDTO::newValue)
-                .contains("string2", "string3", "false", "true");
+                .contains("[string2, string3]", "[false, true]");
         assertThat(listOfChanges.get(0).changes())
                 .extracting(ModelChangeDTO::oldValue)
-                .contains("string1", "string2", "true", "false");
+                .contains("[string1, string2]", "[true, false]");
     }
 
 
