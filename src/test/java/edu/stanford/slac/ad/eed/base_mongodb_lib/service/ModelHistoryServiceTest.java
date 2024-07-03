@@ -80,7 +80,7 @@ public class ModelHistoryServiceTest {
         assertThat(listOfChanges.get(0).changes()).isNotEmpty();
         assertThat(listOfChanges.get(0).changes())
                 .extracting(ModelChangeDTO::newValue)
-                .contains("true", "string1");
+                .contains(true, "string1");
 
         var modelStateChanges = assertDoesNotThrow(() -> modelHistoryService.findModelChangesByModelId(TestChangeModelPrimitive.class, savedTestModel.getId()));
         assertThat(modelStateChanges).isNotEmpty().hasSize(1);
@@ -116,11 +116,11 @@ public class ModelHistoryServiceTest {
         assertThat(listOfChanges.get(0).changes()).hasSize(1);
         assertThat(listOfChanges.get(0).changes())
                 .extracting(ModelChangeDTO::newValue)
-                .contains("true");
+                .contains(true);
         assertThat(listOfChanges.get(1).changes()).hasSize(2);
         assertThat(listOfChanges.get(1).changes())
                 .extracting(ModelChangeDTO::newValue)
-                .contains("false", "string2");
+                .contains(false, "string2");
 
         var modelStateChanges = assertDoesNotThrow(() -> modelHistoryService.findModelChangesByModelId(TestChangeModelPrimitive.class, savedTestModel.getId()));
         assertThat(modelStateChanges).isNotEmpty().hasSize(3);
