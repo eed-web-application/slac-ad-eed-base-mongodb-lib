@@ -21,7 +21,6 @@ import static edu.stanford.slac.ad.eed.baselib.exception.Utility.wrapCatch;
 
 @Service
 @AllArgsConstructor
-@ConditionalOnProperty(name = "edu.stanford.slac.ad.eed.baselib.enable-model-change-history", havingValue = "true", matchIfMissing = false)
 public class ModelHistoryServiceImpl extends ModelHistoryService {
     private final Javers javers;
     private final ModelChangeMapper modelChangeMapper;
