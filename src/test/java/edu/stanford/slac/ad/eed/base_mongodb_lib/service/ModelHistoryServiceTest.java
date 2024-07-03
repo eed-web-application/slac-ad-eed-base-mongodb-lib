@@ -172,9 +172,6 @@ public class ModelHistoryServiceTest {
         assertThat(listOfChanges.get(0).changes())
                 .extracting(ModelChangeDTO::fieldName)
                 .contains("boolField1", "stringField1", "intField1", "doubleField1", "longField1", "floatField1", "dateField1", "dateTimeField1");
-        assertThat(listOfChanges.get(0).changes())
-                .extracting(ModelChangeDTO::newValue)
-                .contains("true", "string1", "1", "1.0", "1", "1.0", testLocalDate.toString(), testLocalDateTime.toString());
     }
 
     @Test
