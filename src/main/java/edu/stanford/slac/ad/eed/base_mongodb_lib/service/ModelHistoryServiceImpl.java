@@ -1,6 +1,5 @@
 package edu.stanford.slac.ad.eed.base_mongodb_lib.service;
 
-import edu.stanford.slac.ad.eed.base_mongodb_lib.repository.ModelHistoryRepository;
 import edu.stanford.slac.ad.eed.baselib.api.v1.dto.ModelChangeDTO;
 import edu.stanford.slac.ad.eed.baselib.api.v1.dto.ModelChangesHistoryDTO;
 import edu.stanford.slac.ad.eed.baselib.api.v1.mapper.ModelChangeMapper;
@@ -9,8 +8,6 @@ import lombok.AllArgsConstructor;
 import org.javers.core.Changes;
 import org.javers.core.Javers;
 import org.javers.core.commit.CommitId;
-import org.javers.core.diff.Change;
-import org.javers.core.diff.Diff;
 import org.javers.core.diff.changetype.PropertyChange;
 import org.javers.core.metamodel.object.CdoSnapshot;
 import org.javers.repository.jql.QueryBuilder;
@@ -18,8 +15,6 @@ import org.javers.shadow.Shadow;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.*;
 
 import static edu.stanford.slac.ad.eed.baselib.exception.Utility.wrapCatch;
@@ -30,7 +25,6 @@ import static edu.stanford.slac.ad.eed.baselib.exception.Utility.wrapCatch;
 public class ModelHistoryServiceImpl extends ModelHistoryService {
     private final Javers javers;
     private final ModelChangeMapper modelChangeMapper;
-    private final ModelHistoryRepository modelHistoryRepository;
 
     @Override
     public <T> List<ModelChangesHistoryDTO> findChangesByModelId(Class<T> modelClazz, String modelId) {
