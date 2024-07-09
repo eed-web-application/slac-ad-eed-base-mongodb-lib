@@ -16,7 +16,7 @@ edu:
       ad:
         eed:
           baselib:
-            enable-model-change-history": true
+            autoload-user-authorizations: false
             authorized-service-internal-token: account@internal.app1.slac.app$, account@internal.app2.slac.app$
             app-tokken-prefix: ${spring.application.name}
             user-header-name: jwt-header-key
