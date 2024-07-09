@@ -37,11 +37,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @SpringBootTest()
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-//@PropertySource("classpath:application.yml")
 @ExtendWith(MockitoExtension.class)
 @ActiveProfiles({"test"})
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
-//@EnableLdapRepositories(basePackages = "edu.stanford.slac.ad.eed.baselib.repository")
 public class AuthControllerTest {
     @Autowired
     private MockMvc mockMvc;
@@ -100,6 +98,19 @@ public class AuthControllerTest {
                                 .build()
                 )
         );
+        //add authorization for user 2 to mix the things
+        assertDoesNotThrow(
+                ()->authService.addNewAuthorization(
+                        NewAuthorizationDTO
+                                .builder()
+                                .authorizationType(AuthorizationTypeDTO.Read)
+                                .ownerType(AuthorizationOwnerTypeDTO.User)
+                                .owner("user2@slac.stanford.edu")
+                                .resource("read::resource1")
+                                .build()
+                )
+        );
+
         ApiResultResponse<PersonDetailsDTO> meResult = assertDoesNotThrow(
                 () -> testControllerHelperService.getMe(
                         mockMvc,
