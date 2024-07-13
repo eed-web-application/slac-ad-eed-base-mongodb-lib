@@ -1,5 +1,6 @@
 package edu.stanford.slac.ad.eed.base_mongodb_lib.utility;
 
+import edu.stanford.slac.ad.eed.baselib.model.AuthenticationToken;
 import edu.stanford.slac.ad.eed.baselib.model.Authorization;
 import edu.stanford.slac.ad.eed.baselib.model.LocalGroup;
 import lombok.AllArgsConstructor;
@@ -85,13 +86,42 @@ public class InitAuthorizationIndex extends MongoDDLOps {
                         )
                         .named("membersIndex")
         );
-
+        MongoDDLOps.createIndex(
+                LocalGroup.class,
+                mongoTemplate,
+                new Index()
+                        .on(
+                                "createdDate",
+                                Sort.Direction.ASC
+                        )
+                        .named("createdDateIndex")
+        );
         MongoDDLOps.createIndex(
                 LocalGroup.class,
                 mongoTemplate,
                 new TextIndexDefinition.TextIndexDefinitionBuilder()
                         .onField("name")
                         .onField("description")
+                        .named("fullTextIndex")
+                        .build()
+        );
+
+        // create index on authentication token
+        MongoDDLOps.createIndex(
+                AuthenticationToken.class,
+                mongoTemplate,
+                new Index()
+                        .on(
+                                "createdDate",
+                                Sort.Direction.ASC
+                        )
+                        .named("createDateIndex")
+        );
+        MongoDDLOps.createIndex(
+                AuthenticationToken.class,
+                mongoTemplate,
+                new TextIndexDefinition.TextIndexDefinitionBuilder()
+                        .onField("name")
                         .named("fullTextIndex")
                         .build()
         );

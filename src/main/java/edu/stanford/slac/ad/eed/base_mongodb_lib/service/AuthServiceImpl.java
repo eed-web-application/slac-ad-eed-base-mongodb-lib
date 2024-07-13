@@ -1047,6 +1047,18 @@ public class AuthServiceImpl extends AuthService {
         );
     }
 
+    @Override
+    public List<AuthenticationTokenDTO> findAllAuthenticationToken(AuthenticationTokenQueryParameterDTO queryParameterDTO) {
+        return wrapCatch(
+                ()->authenticationTokenRepository.findAll(
+                        authMapper.toModel(queryParameterDTO)
+                ).stream().map(
+                        authMapper::toTokenDTO
+                ).toList(),
+                -1
+        );
+    }
+
     /**
      * Delete a token by name along with all his authorization records
      *

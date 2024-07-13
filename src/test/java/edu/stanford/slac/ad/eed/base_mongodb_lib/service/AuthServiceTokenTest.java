@@ -2,12 +2,15 @@ package edu.stanford.slac.ad.eed.base_mongodb_lib.service;
 
 import edu.stanford.slac.ad.eed.base_mongodb_lib.repository.AuthenticationTokenRepository;
 import edu.stanford.slac.ad.eed.base_mongodb_lib.repository.AuthorizationRepository;
+import edu.stanford.slac.ad.eed.base_mongodb_lib.utility.InitAuthorizationIndex;
 import edu.stanford.slac.ad.eed.baselib.api.v1.dto.AuthenticationTokenDTO;
+import edu.stanford.slac.ad.eed.baselib.api.v1.dto.AuthenticationTokenQueryParameterDTO;
 import edu.stanford.slac.ad.eed.baselib.api.v1.dto.NewAuthenticationTokenDTO;
 import edu.stanford.slac.ad.eed.baselib.config.AppProperties;
 import edu.stanford.slac.ad.eed.baselib.exception.AuthenticationTokenMalformed;
 import edu.stanford.slac.ad.eed.baselib.exception.ControllerLogicException;
 import edu.stanford.slac.ad.eed.baselib.model.AuthenticationToken;
+import edu.stanford.slac.ad.eed.baselib.model.AuthenticationTokenQueryParameter;
 import edu.stanford.slac.ad.eed.baselib.model.Authorization;
 import edu.stanford.slac.ad.eed.baselib.model.AuthorizationOwnerType;
 import edu.stanford.slac.ad.eed.baselib.service.AuthService;
@@ -62,6 +65,8 @@ public class AuthServiceTokenTest {
         Mockito.reset(authenticationTokenRepository);
         mongoTemplate.remove(new Query(), Authorization.class);
         mongoTemplate.remove(new Query(), AuthenticationToken.class);
+        InitAuthorizationIndex initAuthorizationIndex = new InitAuthorizationIndex(mongoTemplate);
+        initAuthorizationIndex.updateIndex();
     }
 
     @Test
@@ -293,5 +298,105 @@ public class AuthServiceTokenTest {
         // now the authorization should be gone away
         var exists = assertDoesNotThrow(()->authorizationRepository.existsById(newAuth.getId()));
         AssertionsForClassTypes.assertThat(exists).isTrue();
+    }
+
+    @Test
+    public void testAuthenticationTokenPagination() {
+        // create some authentication token to test the search
+        for (int i = 0; i < 10; i++) {
+            int finalI = i;
+            AuthenticationTokenDTO newAuthToken = assertDoesNotThrow(
+                    () -> authService.addNewAuthenticationToken(
+                            NewAuthenticationTokenDTO
+                                    .builder()
+                                    .name("token-%02d".formatted(finalI))
+                                    .expiration(LocalDate.of(3000,1,1))
+                                    .build(),
+                            false
+                    )
+            );
+            assertThat(newAuthToken).isNotNull();
+        }
+
+        // find first page
+        List<AuthenticationTokenDTO> firstPage = assertDoesNotThrow(
+                () -> authService.findAllAuthenticationToken(
+                        AuthenticationTokenQueryParameterDTO
+                                .builder()
+                                .limit(5)
+                                .build()
+                )
+        );
+        assertThat(firstPage).hasSize(5);
+        assertThat(firstPage.get(0).name()).isEqualTo("token-00");
+        assertThat(firstPage.get(1).name()).isEqualTo("token-01");
+        assertThat(firstPage.get(2).name()).isEqualTo("token-02");
+        assertThat(firstPage.get(3).name()).isEqualTo("token-03");
+        assertThat(firstPage.get(4).name()).isEqualTo("token-04");
+
+        // find second page
+        List<AuthenticationTokenDTO> secondPage = assertDoesNotThrow(
+                () -> authService.findAllAuthenticationToken(
+                        AuthenticationTokenQueryParameterDTO
+                                .builder()
+                                .anchor(firstPage.get(4).id())
+                                .limit(5)
+                                .build()
+                )
+        );
+        assertThat(secondPage).hasSize(5);
+        assertThat(secondPage.get(0).name()).isEqualTo("token-05");
+        assertThat(secondPage.get(1).name()).isEqualTo("token-06");
+        assertThat(secondPage.get(2).name()).isEqualTo("token-07");
+        assertThat(secondPage.get(3).name()).isEqualTo("token-08");
+        assertThat(secondPage.get(4).name()).isEqualTo("token-09");
+
+        // get previous context
+        List<AuthenticationTokenDTO> thirdPage = assertDoesNotThrow(
+                () -> authService.findAllAuthenticationToken(
+                        AuthenticationTokenQueryParameterDTO
+                                .builder()
+                                .anchor(secondPage.get(0).id())
+                                .context(5)
+                                .build()
+                )
+        );
+        assertThat(thirdPage).hasSize(5);
+        assertThat(thirdPage.get(0).name()).isEqualTo("token-01");
+        assertThat(thirdPage.get(1).name()).isEqualTo("token-02");
+        assertThat(thirdPage.get(2).name()).isEqualTo("token-03");
+        assertThat(thirdPage.get(3).name()).isEqualTo("token-04");
+        assertThat(thirdPage.get(4).name()).isEqualTo("token-05");
+    }
+
+    @Test
+    public void testAuthenticationTokenPaginationTextSearch() {
+        // create some authentication token to test the search
+        for (int i = 0; i < 10; i++) {
+            int finalI = i;
+            AuthenticationTokenDTO newAuthToken = assertDoesNotThrow(
+                    () -> authService.addNewAuthenticationToken(
+                            NewAuthenticationTokenDTO
+                                    .builder()
+                                    .name("token-%02d".formatted(finalI))
+                                    .expiration(LocalDate.of(3000,1,1))
+                                    .build(),
+                            false
+                    )
+            );
+            assertThat(newAuthToken).isNotNull();
+        }
+
+        List<AuthenticationTokenDTO> thirdPage = assertDoesNotThrow(
+                () -> authService.findAllAuthenticationToken(
+                        AuthenticationTokenQueryParameterDTO
+                                .builder()
+                                .searchFilter("01")
+                                .limit(5)
+                                .build()
+                )
+        );
+        assertThat(thirdPage).hasSize(1);
+        assertThat(thirdPage.get(0).name()).isEqualTo("token-01");
     }
 }

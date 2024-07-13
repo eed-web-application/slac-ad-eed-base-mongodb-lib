@@ -38,7 +38,7 @@ dependencies {
             'com.fasterxml.jackson.core:jackson-databind',
             'org.springframework.boot:spring-boot-starter-data-mongodb'
     // eed base lib dependency
-    implementation 'edu.stanford.slac:slac-ad-eed-baselib:0.1.62'
+    implementation 'edu.stanford.slac:slac-ad-eed-baselib:0.1.64'
     api 'org.javers:javers-spring-boot-starter-mongo:7.5.0'
 
     compileOnly 'org.projectlombok:lombok'

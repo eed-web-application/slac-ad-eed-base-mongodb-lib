@@ -1,6 +1,8 @@
 package edu.stanford.slac.ad.eed.base_mongodb_lib.repository;
 
 import edu.stanford.slac.ad.eed.baselib.exception.ControllerLogicException;
+import edu.stanford.slac.ad.eed.baselib.model.AuthenticationToken;
+import edu.stanford.slac.ad.eed.baselib.model.AuthenticationTokenQueryParameter;
 import edu.stanford.slac.ad.eed.baselib.model.LocalGroup;
 import edu.stanford.slac.ad.eed.baselib.model.LocalGroupQueryParameter;
 import lombok.AllArgsConstructor;
@@ -19,29 +21,30 @@ import java.util.List;
 
 @Repository
 @AllArgsConstructor
-public class LocalGroupRepositoryImpl implements LocalGroupRepositoryCustom {
+public class AuthenticationTokenRepositoryImpl implements AuthenticationTokenRepositoryCustom {
     private final MongoTemplate mongoTemplate;
 
+
     @Override
-    public List<LocalGroup> findAll(LocalGroupQueryParameter queryParameter) {
+    public List<AuthenticationToken> findAll(AuthenticationTokenQueryParameter queryParameter) {
         if (
-                queryParameter.getContextSize() != null &&
-                        queryParameter.getContextSize() >0 &&
-                        queryParameter.getAnchorID() == null
+                queryParameter.getContext() != null &&
+                        queryParameter.getContext() >0 &&
+                        queryParameter.getAnchor() == null
         ) {
             throw ControllerLogicException
                     .builder()
                     .errorCode(-1)
                     .errorMessage("The context count cannot be used without the anchor")
-                    .errorDomain("LocalGroupRepositoryImpl::findAll")
+                    .errorDomain("AuthenticationTokenRepositoryImpl::findAll")
                     .build();
         }
 
         // all the criteria
         List<Criteria> allCriteria = new ArrayList<>();
-        LocalDateTime anchorCreatedDate = queryParameter.getAnchorID() != null?getAnchorCreatedDate(queryParameter.getAnchorID()):null;
-        List<LocalGroup> elementsBeforeAnchor = contextSearch(queryParameter, anchorCreatedDate, allCriteria);
-        List<LocalGroup> elementsAfterAnchor =  limitSearch(queryParameter, anchorCreatedDate, allCriteria);
+        LocalDateTime anchorCreatedDate = queryParameter.getAnchor() != null?getAnchorCreatedDate(queryParameter.getAnchor()):null;
+        List<AuthenticationToken> elementsBeforeAnchor = contextSearch(queryParameter, anchorCreatedDate, allCriteria);
+        List<AuthenticationToken> elementsAfterAnchor =  limitSearch(queryParameter, anchorCreatedDate, allCriteria);
         elementsBeforeAnchor.addAll(elementsAfterAnchor);
         return elementsBeforeAnchor;
     }
@@ -55,7 +58,7 @@ public class LocalGroupRepositoryImpl implements LocalGroupRepositoryCustom {
         Query q = new Query();
         q.addCriteria(Criteria.where("id").is(anchorId));
         q.fields().include("createdDate");
-        var inventoryElementFound =  mongoTemplate.findOne(q, LocalGroup.class);
+        var inventoryElementFound =  mongoTemplate.findOne(q, AuthenticationToken.class);
         return (inventoryElementFound!=null)?inventoryElementFound.getCreatedDate():null;
     }
 
@@ -64,11 +67,11 @@ public class LocalGroupRepositoryImpl implements LocalGroupRepositoryCustom {
      * @param queryParameter is the query parameter class
      * @return return the mongodb query
      */
-    private static Query getQuery(LocalGroupQueryParameter queryParameter) {
+    private static Query getQuery(AuthenticationTokenQueryParameter queryParameter) {
         Query query;
-        if (queryParameter.getSearch() != null && !queryParameter.getSearch().isEmpty()) {
+        if (queryParameter.getSearchFilter() != null && !queryParameter.getSearchFilter().isEmpty()) {
             query = TextQuery.queryText(TextCriteria.forDefaultLanguage()
-                    .matchingAny(queryParameter.getSearch().split(" "))
+                    .matchingAny(queryParameter.getSearchFilter().split(" "))
             );
         } else {
             query = new Query();
@@ -83,8 +86,8 @@ public class LocalGroupRepositoryImpl implements LocalGroupRepositoryCustom {
      * @param allCriteria the criteria
      * @return the list of work
      */
-    private List<LocalGroup> limitSearch(LocalGroupQueryParameter queryParameter, LocalDateTime anchorCreatedDate, List<Criteria> allCriteria) {
-        List<LocalGroup> elementsAfterAnchor = new ArrayList<>();
+    private List<AuthenticationToken> limitSearch(AuthenticationTokenQueryParameter queryParameter, LocalDateTime anchorCreatedDate, List<Criteria> allCriteria) {
+        List<AuthenticationToken> elementsAfterAnchor = new ArrayList<>();
         if (queryParameter.getLimit() != null && queryParameter.getLimit() > 0) {
             Query query = getQuery(queryParameter);
             if (anchorCreatedDate != null) {
@@ -107,7 +110,7 @@ public class LocalGroupRepositoryImpl implements LocalGroupRepositoryCustom {
             elementsAfterAnchor.addAll(
                     mongoTemplate.find(
                             query,
-                            LocalGroup.class
+                            AuthenticationToken.class
                     )
             );
         }
@@ -121,11 +124,11 @@ public class LocalGroupRepositoryImpl implements LocalGroupRepositoryCustom {
      * @param allCriteria the criteria
      * @return the list of work
      */
-    private List<LocalGroup> contextSearch(LocalGroupQueryParameter queryParameter, LocalDateTime anchorCreatedDate, List<Criteria> allCriteria) {
-        List<LocalGroup> elementsBeforeAnchor = new ArrayList<>();
+    private List<AuthenticationToken> contextSearch(AuthenticationTokenQueryParameter queryParameter, LocalDateTime anchorCreatedDate, List<Criteria> allCriteria) {
+        List<AuthenticationToken> elementsBeforeAnchor = new ArrayList<>();
         if (
-                queryParameter.getContextSize() != null
-                        && queryParameter.getContextSize() > 0
+                queryParameter.getContext() != null
+                        && queryParameter.getContext() > 0
                         && anchorCreatedDate != null
         ) {
             allCriteria.add(
@@ -144,11 +147,11 @@ public class LocalGroupRepositoryImpl implements LocalGroupRepositoryCustom {
             query.with(
                     Sort.by(
                             Sort.Direction.DESC, "createdDate")
-            ).limit(queryParameter.getContextSize());
+            ).limit(queryParameter.getContext());
             elementsBeforeAnchor.addAll(
                     mongoTemplate.find(
                             query,
-                            LocalGroup.class
+                            AuthenticationToken.class
                     )
             );
             // reverse the order
@@ -156,4 +159,5 @@ public class LocalGroupRepositoryImpl implements LocalGroupRepositoryCustom {
         }
         return elementsBeforeAnchor;
     }
+
 }
