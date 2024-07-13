@@ -7,7 +7,7 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import java.util.List;
 import java.util.Optional;
 
-public interface AuthenticationTokenRepository extends MongoRepository<AuthenticationToken, String> {
+public interface AuthenticationTokenRepository extends MongoRepository<AuthenticationToken, String>,AuthenticationTokenRepositoryCustom {
     /**
      * Find all authentication tokens that are managed by the application.
      *
