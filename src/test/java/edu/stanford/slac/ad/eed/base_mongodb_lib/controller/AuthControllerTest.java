@@ -64,7 +64,7 @@ public class AuthControllerTest {
 
     @Test
     public void getMe() {
-        // add some other auhtorization for user
+        // add some other authorization for user
         assertDoesNotThrow(
                 ()->authService.addNewAuthorization(
                         NewAuthorizationDTO

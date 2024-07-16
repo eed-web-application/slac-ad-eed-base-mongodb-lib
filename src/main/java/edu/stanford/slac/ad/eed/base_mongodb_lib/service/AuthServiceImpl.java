@@ -9,10 +9,7 @@ import edu.stanford.slac.ad.eed.baselib.api.v2.dto.*;
 import edu.stanford.slac.ad.eed.baselib.api.v2.mapper.LocalGroupMapper;
 import edu.stanford.slac.ad.eed.baselib.auth.JWTHelper;
 import edu.stanford.slac.ad.eed.baselib.config.AppProperties;
-import edu.stanford.slac.ad.eed.baselib.exception.AuthenticationTokenMalformed;
-import edu.stanford.slac.ad.eed.baselib.exception.AuthenticationTokenNotFound;
-import edu.stanford.slac.ad.eed.baselib.exception.ControllerLogicException;
-import edu.stanford.slac.ad.eed.baselib.exception.PersonNotFound;
+import edu.stanford.slac.ad.eed.baselib.exception.*;
 import edu.stanford.slac.ad.eed.baselib.model.AuthenticationToken;
 import edu.stanford.slac.ad.eed.baselib.model.Authorization;
 import edu.stanford.slac.ad.eed.baselib.model.AuthorizationOwnerType;
@@ -815,6 +812,22 @@ public class AuthServiceImpl extends AuthService {
                 "AuthService::addNewAuthorization"
         );
         return result.getId();
+    }
+
+    @Override
+    public AuthorizationDTO findAuthorizationById(String authorizationId) {
+        return wrapCatch(
+                () -> authorizationRepository.findById(authorizationId)
+                        .map(authMapper::fromModel)
+                        .orElseThrow(
+                                () -> AuthorizationNotFound.authorizationNotFound()
+                                        .errorCode(-1)
+                                        .authId(authorizationId)
+                                        .build()
+                        ),
+                -2,
+                "AuthService::addNewAuthorization"
+        );
     }
 
     @Override
