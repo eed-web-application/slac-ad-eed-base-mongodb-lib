@@ -306,6 +306,7 @@ public class AuthServiceImpl extends AuthService {
     }
 
     @Override
+    @Cacheable(value = "user-authorization", key = "{#owner, #ownerType, #allHigherAuthOnSameResource}")
     public List<AuthorizationDTO> getAllAuthenticationForOwner(String owner, AuthorizationOwnerTypeDTO ownerType, Optional<Boolean> allHigherAuthOnSameResource) {
         boolean isAppToken = appProperties.isAuthenticationToken(owner);
 // get user authorizations
