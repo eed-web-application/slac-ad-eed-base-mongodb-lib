@@ -1178,14 +1178,15 @@ public class AuthServiceImpl extends AuthService {
         ).toList();
     }
 
+
     @Override
-    public boolean canManageGroup(Authentication authentication) {
-        boolean isAppToken = appProperties.isAuthenticationToken(authentication.getPrincipal().toString());
+    public boolean canManageGroup(String userId) {
+        boolean isAppToken = appProperties.isAuthenticationToken(userId);
         // get user authorizations
         List<AuthorizationDTO> allAuth = new ArrayList<>(
                 wrapCatch(
                         () -> authorizationRepository.findByOwnerAndOwnerTypeAndAuthorizationTypeIsGreaterThanEqualAndResourceStartingWith(
-                                authentication.getPrincipal().toString(),
+                                userId,
                                 isAppToken ? AuthorizationOwnerType.Token : AuthorizationOwnerType.User,
                                 Authorization.Type.Admin.getValue(),
                                 "%s/group".formatted(
