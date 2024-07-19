@@ -302,8 +302,7 @@ public class AuthServiceImpl extends AuthService {
     }
 
     @Override
-    @Cacheable(value = "user-authorization", key = "{#owner, #ownerType, #allHigherAuthOnSameResource}")
-    public List<AuthorizationDTO> getAllAuthenticationForOwner(String owner, AuthorizationOwnerTypeDTO ownerType, Optional<Boolean> allHigherAuthOnSameResource) {
+    public List<AuthorizationDTO> getAllAuthenticationForOwner(String owner, AuthorizationOwnerTypeDTO ownerType, Optional<Boolean> allHigherAuthOnSameResource, Optional<Boolean> includeInherited) {
         boolean isAppToken = appProperties.isAuthenticationToken(owner);
 // get user authorizations
         List<AuthorizationDTO> allAuth = new ArrayList<>(
@@ -320,7 +319,7 @@ public class AuthServiceImpl extends AuthService {
         );
 
 // get user authorizations inherited by group
-        if (!isAppToken) {
+        if (!isAppToken && includeInherited.isPresent() && includeInherited.get()) {
             // in case we have a user check also the groups that belongs to the user
             List<String> userGroups = getGroupByUserId(owner);
 

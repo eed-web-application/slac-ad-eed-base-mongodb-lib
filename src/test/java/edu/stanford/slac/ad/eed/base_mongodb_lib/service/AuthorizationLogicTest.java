@@ -243,6 +243,18 @@ public class AuthorizationLogicTest {
                 .filteredOn(auth -> auth.resource().compareToIgnoreCase("/r1") == 0)
                 .hasSize(1);
 
+        allUserAuthorization = authService.getAllAuthenticationForOwner(
+                "user1@slac.stanford.edu",
+                AuthorizationOwnerTypeDTO.User,
+                Optional.of(false),
+                Optional.of(false)
+        );
+
+        // check auth on r1 read|write
+        assertThat(allUserAuthorization)
+                .filteredOn(auth -> auth.resource().compareToIgnoreCase("/r1") == 0)
+                .hasSize(1);
+
         List<AuthorizationDTO> allUserAuthorizationWithGroupInheritance = authService.getAllAuthorizationForOwnerAndAndAuthTypeAndResourcePrefix(
                 "user1@slac.stanford.edu",
                 Read,
@@ -256,7 +268,15 @@ public class AuthorizationLogicTest {
                 .filteredOn(auth -> auth.resource().compareToIgnoreCase("/r1") == 0)
                 .hasSize(2);
 
-
+        allUserAuthorizationWithGroupInheritance = authService.getAllAuthenticationForOwner(
+                "user1@slac.stanford.edu",
+                AuthorizationOwnerTypeDTO.User,
+                Optional.of(false),
+                Optional.of(true)
+        );
+        assertThat(allUserAuthorizationWithGroupInheritance)
+                .filteredOn(auth -> auth.resource().compareToIgnoreCase("/r1") == 0)
+                .hasSize(2);
     }
 
     @Test
