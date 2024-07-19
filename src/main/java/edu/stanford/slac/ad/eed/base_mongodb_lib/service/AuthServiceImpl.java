@@ -166,13 +166,9 @@ public class AuthServiceImpl extends AuthService {
      * @param allHigherAuthOnSameResource return only the higher authorization for each resource
      * @return the list of found resource
      */
-    @Cacheable(value = "user-authorization", key = "{#owner, #authorizationType, #resourcePrefix, #allHigherAuthOnSameResource}")
-    public List<AuthorizationDTO> getAllAuthorizationForOwnerAndAndAuthTypeAndResourcePrefix(
-            String owner,
-            AuthorizationTypeDTO authorizationType,
-            String resourcePrefix,
-            Optional<Boolean> allHigherAuthOnSameResource
-    ) {
+    @Override
+    @Cacheable(value = "user-authorization", key = "{#owner, #authorizationType, #resourcePrefix, #allHigherAuthOnSameResource, #includeGroupForUser}")
+    public List<AuthorizationDTO> getAllAuthorizationForOwnerAndAndAuthTypeAndResourcePrefix(String owner, AuthorizationTypeDTO authorizationType, String resourcePrefix, Optional<Boolean> allHigherAuthOnSameResource, Optional<Boolean> includeGroupForUser) {
         boolean isAppToken = appProperties.isAuthenticationToken(owner);
         // get user authorizations
         List<AuthorizationDTO> allAuth = new ArrayList<>(
@@ -191,9 +187,9 @@ public class AuthServiceImpl extends AuthService {
         );
 
         // get user authorizations inherited by group
-        if (!isAppToken) {
+        if (!isAppToken && includeGroupForUser.isPresent() && includeGroupForUser.get().booleanValue()) {
+            // if requested return also the
             List<String> userGroups = getGroupByUserId(owner);
-
             // load all groups authorizations
             allAuth.addAll(
                     userGroups
