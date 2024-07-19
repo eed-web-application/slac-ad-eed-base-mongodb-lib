@@ -204,6 +204,60 @@ public class AuthorizationLogicTest {
                 .contains("group-2");
     }
 
+    @Test
+    public void checkNonInheritanceFromGroup() {
+        //read ->r1
+        Authorization newAuthWriteUser1 = assertDoesNotThrow(
+                () -> authorizationRepository.save(
+                        Authorization.builder()
+                                .authorizationType(Authorization.Type.Read.getValue())
+                                .owner("user1@slac.stanford.edu")
+                                .ownerType(User)
+                                .resource("/r1")
+                                .build()
+                )
+        );
+        // write->r1
+        Authorization newAuthWriteGroups1_1 = assertDoesNotThrow(
+                () -> authorizationRepository.save(
+                        Authorization.builder()
+                                .authorizationType(Authorization.Type.Write.getValue())
+                                .owner("group-1")
+                                .ownerType(Group)
+                                .resource("/r1")
+                                .build()
+                )
+        );
+
+
+        List<AuthorizationDTO> allUserAuthorization = authService.getAllAuthorizationForOwnerAndAndAuthTypeAndResourcePrefix(
+                "user1@slac.stanford.edu",
+                Read,
+                "/r",
+                Optional.empty(),
+                Optional.of(false)
+        );
+
+        // check auth on r1 read|write
+        assertThat(allUserAuthorization)
+                .filteredOn(auth -> auth.resource().compareToIgnoreCase("/r1") == 0)
+                .hasSize(1);
+
+        List<AuthorizationDTO> allUserAuthorizationWithGroupInheritance = authService.getAllAuthorizationForOwnerAndAndAuthTypeAndResourcePrefix(
+                "user1@slac.stanford.edu",
+                Read,
+                "/r",
+                Optional.empty(),
+                Optional.of(true)
+        );
+
+        // check auth on r1 read|write
+        assertThat(allUserAuthorizationWithGroupInheritance)
+                .filteredOn(auth -> auth.resource().compareToIgnoreCase("/r1") == 0)
+                .hasSize(2);
+
+
+    }
 
     @Test
     public void findAuthorizationByLevel() {
