@@ -3,6 +3,9 @@ package edu.stanford.slac.ad.eed.base_mongodb_lib.service;
 import edu.stanford.slac.ad.eed.base_mongodb_lib.repository.AuthenticationTokenRepository;
 import edu.stanford.slac.ad.eed.base_mongodb_lib.repository.AuthorizationRepository;
 import edu.stanford.slac.ad.eed.base_mongodb_lib.utility.InitAuthorizationIndex;
+import edu.stanford.slac.ad.eed.baselib.api.v1.dto.AuthorizationOwnerTypeDTO;
+import edu.stanford.slac.ad.eed.baselib.api.v1.dto.AuthorizationTypeDTO;
+import edu.stanford.slac.ad.eed.baselib.api.v1.dto.NewAuthorizationDTO;
 import edu.stanford.slac.ad.eed.baselib.api.v1.dto.PersonDTO;
 import edu.stanford.slac.ad.eed.baselib.api.v2.dto.*;
 import edu.stanford.slac.ad.eed.baselib.model.Authorization;
@@ -58,20 +61,20 @@ public class LocalGroupTest {
     @Test
     public void testAssignUserToManageGroup() {
         assertDoesNotThrow(
-                ()->authService.authorizeUserIdToManageGroup("user1@slac.stanford.edu")
+                () -> authService.authorizeUserIdToManageGroup("user1@slac.stanford.edu")
         );
 
         var iAuthorized = assertDoesNotThrow(
-                ()->authService.canManageGroup(new UsernamePasswordAuthenticationToken("user1@slac.stanford.edu","") )
+                () -> authService.canManageGroup(new UsernamePasswordAuthenticationToken("user1@slac.stanford.edu", ""))
         );
         assertThat(iAuthorized).isTrue();
 
         assertDoesNotThrow(
-                ()->authService.removeAuthorizationToUserIdToManageGroup("user1@slac.stanford.edu")
+                () -> authService.removeAuthorizationToUserIdToManageGroup("user1@slac.stanford.edu")
         );
 
         iAuthorized = assertDoesNotThrow(
-                ()->authService.canManageGroup(new UsernamePasswordAuthenticationToken("user1@slac.stanford.edu","") )
+                () -> authService.canManageGroup(new UsernamePasswordAuthenticationToken("user1@slac.stanford.edu", ""))
         );
         assertThat(iAuthorized).isFalse();
     }
@@ -80,7 +83,7 @@ public class LocalGroupTest {
     public void testAssignUserToManageGroupWithGeneralAPI() {
         // add user
         assertDoesNotThrow(
-                ()->authService.manageAuthorizationOnGroup(
+                () -> authService.manageAuthorizationOnGroup(
                         AuthorizationGroupManagementDTO
                                 .builder()
                                 .addUsers(List.of("user1@slac.stanford.edu"))
@@ -90,7 +93,7 @@ public class LocalGroupTest {
         );
 
         var authorizationList1 = assertDoesNotThrow(
-                ()->authService.getGroupManagementAuthorization(List.of("user1@slac.stanford.edu"))
+                () -> authService.getGroupManagementAuthorization(List.of("user1@slac.stanford.edu"))
         );
         assertThat(authorizationList1).isNotEmpty();
         assertThat(authorizationList1)
@@ -100,7 +103,7 @@ public class LocalGroupTest {
 
         // add new user and remove old
         assertDoesNotThrow(
-                ()->authService.manageAuthorizationOnGroup(
+                () -> authService.manageAuthorizationOnGroup(
                         AuthorizationGroupManagementDTO
                                 .builder()
                                 .addUsers(List.of("user2@slac.stanford.edu"))
@@ -109,7 +112,7 @@ public class LocalGroupTest {
                 )
         );
         var authorizationList2 = assertDoesNotThrow(
-                ()->authService.getGroupManagementAuthorization(List.of("user1@slac.stanford.edu", "user2@slac.stanford.edu"))
+                () -> authService.getGroupManagementAuthorization(List.of("user1@slac.stanford.edu", "user2@slac.stanford.edu"))
         );
         assertThat(authorizationList2).isNotEmpty();
         assertThat(authorizationList2)
@@ -123,9 +126,9 @@ public class LocalGroupTest {
     }
 
     @Test
-    public void createGroup(){
+    public void createGroup() {
         String groupId = assertDoesNotThrow(
-                ()->authService.createLocalGroup(
+                () -> authService.createLocalGroup(
                         NewLocalGroupDTO
                                 .builder()
                                 .name("test")
@@ -137,7 +140,7 @@ public class LocalGroupTest {
         assertThat(groupId).isNotNull();
 
         var groupFound = assertDoesNotThrow(
-                ()->authService.findLocalGroup(
+                () -> authService.findLocalGroup(
                         LocalGroupQueryParameterDTO
                                 .builder()
                                 .limit(10)
@@ -153,9 +156,9 @@ public class LocalGroupTest {
     }
 
     @Test
-    public void updateGroup(){
+    public void updateGroup() {
         String groupId = assertDoesNotThrow(
-                ()->authService.createLocalGroup(
+                () -> authService.createLocalGroup(
                         NewLocalGroupDTO
                                 .builder()
                                 .name("test")
@@ -168,19 +171,19 @@ public class LocalGroupTest {
 
         // update to change field value
         assertDoesNotThrow(
-                ()->authService.updateLocalGroup(
+                () -> authService.updateLocalGroup(
                         groupId,
                         UpdateLocalGroupDTO
                                 .builder()
                                 .name("name updated")
                                 .description("description updated")
-                                .members(List.of("user2@slac.stanford.edu","user2@slac.stanford.edu"))
+                                .members(List.of("user2@slac.stanford.edu", "user2@slac.stanford.edu"))
                                 .build()
                 )
         );
 
         var groupFound = assertDoesNotThrow(
-                ()->authService.findLocalGroup(
+                () -> authService.findLocalGroup(
                         LocalGroupQueryParameterDTO
                                 .builder()
                                 .limit(10)
@@ -193,13 +196,13 @@ public class LocalGroupTest {
         assertThat(groupFound.get(0).name()).isEqualTo("name updated");
         assertThat(groupFound.get(0).description()).isEqualTo("description updated");
         assertThat(groupFound.get(0).members().size()).isEqualTo(2);
-        assertThat(groupFound.get(0).members()).extracting("mail").contains("user2@slac.stanford.edu","user2@slac.stanford.edu");
+        assertThat(groupFound.get(0).members()).extracting("mail").contains("user2@slac.stanford.edu", "user2@slac.stanford.edu");
     }
 
     @Test
     public void testFullTextSearch() {
         // generate 100 random local group
-        for(int i=0; i<100; i++) {
+        for (int i = 0; i < 100; i++) {
             int finalI = i;
             assertDoesNotThrow(
                     () -> authService.createLocalGroup(
@@ -215,7 +218,7 @@ public class LocalGroupTest {
 
         // found with text search
         var groupFound = assertDoesNotThrow(
-                ()->authService.findLocalGroup(
+                () -> authService.findLocalGroup(
                         LocalGroupQueryParameterDTO
                                 .builder()
                                 .search("\"test-10\"")
@@ -227,5 +230,4 @@ public class LocalGroupTest {
         assertThat(groupFound.size()).isEqualTo(1);
         assertThat(groupFound.get(0).name()).isEqualTo("test-10");
     }
-
 }
