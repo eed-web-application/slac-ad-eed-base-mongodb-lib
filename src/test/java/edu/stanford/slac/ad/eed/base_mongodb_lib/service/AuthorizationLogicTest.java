@@ -4,6 +4,7 @@ import edu.stanford.slac.ad.eed.base_mongodb_lib.repository.AuthorizationReposit
 import edu.stanford.slac.ad.eed.baselib.api.v1.dto.AuthorizationDTO;
 import edu.stanford.slac.ad.eed.baselib.api.v1.dto.AuthorizationOwnerTypeDTO;
 import edu.stanford.slac.ad.eed.baselib.api.v1.dto.AuthorizationTypeDTO;
+import edu.stanford.slac.ad.eed.baselib.api.v1.dto.NewAuthorizationDTO;
 import edu.stanford.slac.ad.eed.baselib.api.v2.dto.NewLocalGroupDTO;
 import edu.stanford.slac.ad.eed.baselib.config.AppProperties;
 import edu.stanford.slac.ad.eed.baselib.model.Authorization;
@@ -837,6 +838,33 @@ public class AuthorizationLogicTest {
                 .anySatisfy(auth -> assertThat(auth).is(AuthorizationDTOIs.of("/r1", Admin)))
                 .anySatisfy(auth -> assertThat(auth).is(AuthorizationDTOIs.of("/r2", Read)));
 
+    }
+
+    @Test
+    public void returnGroupAuthorization() {
+        // add user
+        assertDoesNotThrow(
+                () -> authService.addNewAuthorization(
+                        NewAuthorizationDTO
+                                .builder()
+                                .owner("local-group-1")
+                                .ownerType(AuthorizationOwnerTypeDTO.Group)
+                                .resource("r1")
+                                .authorizationType(AuthorizationTypeDTO.Admin)
+                                .build()
+                )
+        );
+
+        var authResult = assertDoesNotThrow(
+                ()->authService.getAllAuthenticationForOwner(
+                        "local-group-1",
+                        AuthorizationOwnerTypeDTO.Group,
+                        Optional.empty()
+                )
+        );
+        assertThat(authResult).isNotNull();
+        assertThat(authResult).hasSize(1);
+        assertThat(authResult).anySatisfy(auth -> assertThat(auth).is(AuthorizationDTOIs.of("r1", Admin)));
     }
 
     /**

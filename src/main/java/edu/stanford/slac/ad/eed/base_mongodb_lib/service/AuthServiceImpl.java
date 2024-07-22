@@ -253,7 +253,7 @@ public class AuthServiceImpl extends AuthService {
                 wrapCatch(
                         () -> authorizationRepository.findByOwnerAndOwnerTypeIsAndResourceStartingWith(
                                 owner,
-                                isAppToken ? AuthorizationOwnerType.Token : AuthorizationOwnerType.User,
+                                authMapper.toModel(ownerType),
                                 resourcePrefix
                         ),
                         -1,
@@ -309,7 +309,7 @@ public class AuthServiceImpl extends AuthService {
                 wrapCatch(
                         () -> authorizationRepository.findByOwnerAndOwnerTypeIs(
                                 owner,
-                                isAppToken ? AuthorizationOwnerType.Token : AuthorizationOwnerType.User
+                                authMapper.toModel(ownerType)
                         ),
                         -1,
                         "AuthService::getAllAuthorization"
@@ -318,8 +318,8 @@ public class AuthServiceImpl extends AuthService {
                 ).toList()
         );
 
-// get user authorizations inherited by group
-        if (!isAppToken && includeInherited.isPresent() && includeInherited.get()) {
+        // get user authorizations inherited by group
+        if (includeInherited.isPresent() && includeInherited.get()) {
             // in case we have a user check also the groups that belongs to the user
             List<String> userGroups = getGroupByUserId(owner);
 
