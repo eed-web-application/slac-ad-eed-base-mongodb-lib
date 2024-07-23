@@ -167,14 +167,13 @@ public class AuthServiceImpl extends AuthService {
     @Override
     @Cacheable(value = "user-authorization", key = "{#owner, #authorizationType, #resourcePrefix, #allHigherAuthOnSameResource, #includeGroupForUser}")
     public List<AuthorizationDTO> getAllAuthorizationForOwnerAndAndAuthTypeAndResourcePrefix(String ownerId, AuthorizationTypeDTO authorizationType, String resourcePrefix, Optional<Boolean> allHigherAuthOnSameResource, Optional<Boolean> includeGroupForUser) {
-        boolean isUser = ownerId.contains("@");
         String realOwnerId = returnRealId(ownerId);
         // get user authorizations
         List<AuthorizationDTO> allAuth = new ArrayList<>(
                 wrapCatch(
                         () -> authorizationRepository.findByOwnerAndOwnerTypeAndAuthorizationTypeIsGreaterThanEqualAndResourceStartingWith(
                                 realOwnerId,
-                                isUser ? AuthorizationOwnerType.User:AuthorizationOwnerType.Token,
+                                realOwnerId.contains("@") ? AuthorizationOwnerType.User:AuthorizationOwnerType.Token,
                                 authMapper.toModel(authorizationType).getValue(),
                                 resourcePrefix
                         ),
@@ -1375,15 +1374,9 @@ public class AuthServiceImpl extends AuthService {
      * @return
      */
     private String returnRealId(String ownerId) {
-        boolean isAppToken = appProperties.isAuthenticationToken(ownerId);
-        if (isAppToken) {
-            return authenticationTokenRepository.findByEmailIs(ownerId)
-                    .orElseThrow(
-                            () -> AuthenticationTokenNotFound.authTokenNotFoundBuilder()
-                                    .errorCode(-1)
-                                    .errorDomain("AuthService::returnRealId")
-                                    .build()
-                    ).getId();
+        var authToken = getAuthenticationTokenByEmail(ownerId);
+        if (authToken.isPresent()) {
+            return authToken.get().id();
         }
         return ownerId;
     }
