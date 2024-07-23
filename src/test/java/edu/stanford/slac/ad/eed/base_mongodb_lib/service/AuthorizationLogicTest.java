@@ -55,11 +55,30 @@ public class AuthorizationLogicTest {
     private AuthService authService;
     @Autowired
     private MongoTemplate mongoTemplate;
+    private String group1Id = null;
+    private String group2Id = null;
 
     @BeforeEach
     public void preTest() {
         mongoTemplate.remove(new Query(), Authorization.class);
         mongoTemplate.remove(new Query(), LocalGroup.class);
+
+        group1Id = authService.createLocalGroup(
+                NewLocalGroupDTO
+                        .builder()
+                        .name("group-1")
+                        .description("group-1")
+                        .members(List.of("user1@slac.stanford.edu"))
+                        .build()
+        );
+        group2Id = authService.createLocalGroup(
+                NewLocalGroupDTO
+                        .builder()
+                        .name("group-2")
+                        .description("group-2")
+                        .members(List.of("user1@slac.stanford.edu", "user2@slac.stanford.edu"))
+                        .build()
+        );
     }
 
 
@@ -93,7 +112,7 @@ public class AuthorizationLogicTest {
                 () -> authorizationRepository.save(
                         Authorization.builder()
                                 .authorizationType(Authorization.Type.Write.getValue())
-                                .owner("group-1")
+                                .owner(group1Id)
                                 .ownerType(Group)
                                 .resource("/r1")
                                 .build()
@@ -104,7 +123,7 @@ public class AuthorizationLogicTest {
                 () -> authorizationRepository.save(
                         Authorization.builder()
                                 .authorizationType(Authorization.Type.Write.getValue())
-                                .owner("group-1")
+                                .owner(group1Id)
                                 .ownerType(Group)
                                 .resource("/r2")
                                 .build()
@@ -115,7 +134,7 @@ public class AuthorizationLogicTest {
                 () -> authorizationRepository.save(
                         Authorization.builder()
                                 .authorizationType(Authorization.Type.Read.getValue())
-                                .owner("group-1")
+                                .owner(group1Id)
                                 .ownerType(Group)
                                 .resource("/r3")
                                 .build()
@@ -126,7 +145,7 @@ public class AuthorizationLogicTest {
                 () -> authorizationRepository.save(
                         Authorization.builder()
                                 .authorizationType(Authorization.Type.Admin.getValue())
-                                .owner("group-2")
+                                .owner(group2Id)
                                 .ownerType(Group)
                                 .resource("/r3")
                                 .build()
@@ -147,7 +166,7 @@ public class AuthorizationLogicTest {
                         auth -> auth.authorizationType() == Write
                 )
                 .extracting(AuthorizationDTO::owner)
-                .contains("group-1");
+                .contains(group1Id);
 
         // check auth on r2 write
         assertThat(allReadAuthorization)
@@ -156,7 +175,7 @@ public class AuthorizationLogicTest {
                         auth -> auth.authorizationType() == Write
                 )
                 .extracting(AuthorizationDTO::owner)
-                .contains("group-1");
+                .contains(group1Id);
 
         // check auth on r3 read|admin
         assertThat(allReadAuthorization)
@@ -167,7 +186,7 @@ public class AuthorizationLogicTest {
                                         auth.authorizationType() == Admin
                 )
                 .extracting(AuthorizationDTO::owner)
-                .contains("group-1", "group-2");
+                .contains(group1Id, group2Id);
 
         // remove all the authorization from the same resource and keep all the higher one
         List<AuthorizationDTO> allHigherAuthorization = authService.getAllAuthorizationForOwnerAndAndAuthTypeAndResourcePrefix(
@@ -184,7 +203,7 @@ public class AuthorizationLogicTest {
                         auth -> auth.authorizationType() == Write
                 )
                 .extracting(AuthorizationDTO::owner)
-                .contains("group-1");
+                .contains(group1Id);
 
         // check auth on r2 write
         assertThat(allReadAuthorization)
@@ -193,7 +212,7 @@ public class AuthorizationLogicTest {
                         auth -> auth.authorizationType() == Write
                 )
                 .extracting(AuthorizationDTO::owner)
-                .contains("group-1");
+                .contains(group1Id);
 
         // check auth on r3 admin
         assertThat(allReadAuthorization)
@@ -202,7 +221,7 @@ public class AuthorizationLogicTest {
                         auth -> auth.authorizationType() == Admin
                 )
                 .extracting(AuthorizationDTO::owner)
-                .contains("group-2");
+                .contains(group2Id);
     }
 
     @Test
@@ -223,7 +242,7 @@ public class AuthorizationLogicTest {
                 () -> authorizationRepository.save(
                         Authorization.builder()
                                 .authorizationType(Authorization.Type.Write.getValue())
-                                .owner("group-1")
+                                .owner(group1Id)
                                 .ownerType(Group)
                                 .resource("/r1")
                                 .build()
@@ -609,7 +628,7 @@ public class AuthorizationLogicTest {
                 () -> authorizationRepository.save(
                         Authorization.builder()
                                 .authorizationType(Authorization.Type.Admin.getValue())
-                                .owner("group-1")
+                                .owner(group1Id)
                                 .ownerType(Group)
                                 .resource("/r1")
                                 .build()
@@ -619,7 +638,7 @@ public class AuthorizationLogicTest {
                 () -> authorizationRepository.save(
                         Authorization.builder()
                                 .authorizationType(Authorization.Type.Read.getValue())
-                                .owner("group-1")
+                                .owner(group1Id)
                                 .ownerType(Group)
                                 .resource("/r2")
                                 .build()
@@ -629,7 +648,7 @@ public class AuthorizationLogicTest {
                 () -> authorizationRepository.save(
                         Authorization.builder()
                                 .authorizationType(Authorization.Type.Admin.getValue())
-                                .owner("group-2")
+                                .owner(group2Id)
                                 .ownerType(Group)
                                 .resource("/r1")
                                 .build()
@@ -645,8 +664,9 @@ public class AuthorizationLogicTest {
                 )
         );
         assertThat(userAuthorization)
-                .hasSize(1)
-                .anySatisfy(auth -> AssertionsForClassTypes.assertThat(auth).is(AuthorizationDTOIs.of("/r1", Admin)));
+                .hasSize(2)
+                .anySatisfy(auth -> assertThat(auth).is(AuthorizationDTOIs.of("/r1", Admin)))
+                .anySatisfy(auth -> assertThat(auth).is(AuthorizationDTOIs.of("/r2", Read)));
 
         userAuthorization = assertDoesNotThrow(
                 () -> authService.getAllAuthenticationForOwner(
@@ -657,9 +677,10 @@ public class AuthorizationLogicTest {
                 )
         );
         assertThat(userAuthorization)
-                .hasSize(3)
+                .hasSize(4)
                 .anySatisfy(auth -> AssertionsForClassTypes.assertThat(auth).is(AuthorizationDTOIs.of("/r1", Admin)))
-                .anySatisfy(auth -> AssertionsForClassTypes.assertThat(auth).is(AuthorizationDTOIs.of("/r1", Read)));
+                .anySatisfy(auth -> AssertionsForClassTypes.assertThat(auth).is(AuthorizationDTOIs.of("/r1", Read)))
+                .anySatisfy(auth -> AssertionsForClassTypes.assertThat(auth).is(AuthorizationDTOIs.of("/r2", Read)));
     }
 
     @Test
@@ -699,7 +720,7 @@ public class AuthorizationLogicTest {
                 () -> authorizationRepository.save(
                         Authorization.builder()
                                 .authorizationType(Authorization.Type.Admin.getValue())
-                                .owner("group-1")
+                                .owner(group1Id)
                                 .ownerType(Group)
                                 .resource("/r1")
                                 .build()
@@ -709,7 +730,7 @@ public class AuthorizationLogicTest {
                 () -> authorizationRepository.save(
                         Authorization.builder()
                                 .authorizationType(Authorization.Type.Read.getValue())
-                                .owner("group-1")
+                                .owner(group1Id)
                                 .ownerType(Group)
                                 .resource("/r2")
                                 .build()
@@ -719,7 +740,7 @@ public class AuthorizationLogicTest {
                 () -> authorizationRepository.save(
                         Authorization.builder()
                                 .authorizationType(Authorization.Type.Admin.getValue())
-                                .owner("group-2")
+                                .owner(group2Id)
                                 .ownerType(Group)
                                 .resource("/r1")
                                 .build()
@@ -756,8 +777,7 @@ public class AuthorizationLogicTest {
     public void checkAuthorizationUsingLocalGroup() {
         appProperties.getRootUserList().clear();
 
-
-        authService.createLocalGroup(
+        var lGroup1Id = authService.createLocalGroup(
                 NewLocalGroupDTO
                         .builder()
                         .name("local-group-1")
@@ -800,7 +820,7 @@ public class AuthorizationLogicTest {
                 () -> authorizationRepository.save(
                         Authorization.builder()
                                 .authorizationType(Authorization.Type.Admin.getValue())
-                                .owner("local-group-1")
+                                .owner(lGroup1Id)
                                 .ownerType(Group)
                                 .resource("/r1")
                                 .build()
@@ -810,7 +830,7 @@ public class AuthorizationLogicTest {
                 () -> authorizationRepository.save(
                         Authorization.builder()
                                 .authorizationType(Authorization.Type.Read.getValue())
-                                .owner("local-group-1")
+                                .owner(lGroup1Id)
                                 .ownerType(Group)
                                 .resource("/r2")
                                 .build()
@@ -842,12 +862,19 @@ public class AuthorizationLogicTest {
 
     @Test
     public void returnGroupAuthorization() {
-        // add user
+        var lGroup1Id = authService.createLocalGroup(
+                NewLocalGroupDTO
+                        .builder()
+                        .name("local-group-1")
+                        .description("local-group-1")
+                        .members(List.of("user3@slac.stanford.edu"))
+                        .build()
+        );
         assertDoesNotThrow(
                 () -> authService.addNewAuthorization(
                         NewAuthorizationDTO
                                 .builder()
-                                .owner("local-group-1")
+                                .owner(lGroup1Id)
                                 .ownerType(AuthorizationOwnerTypeDTO.Group)
                                 .resource("r1")
                                 .authorizationType(AuthorizationTypeDTO.Admin)
@@ -857,7 +884,7 @@ public class AuthorizationLogicTest {
 
         var authResult = assertDoesNotThrow(
                 ()->authService.getAllAuthenticationForOwner(
-                        "local-group-1",
+                        lGroup1Id,
                         AuthorizationOwnerTypeDTO.Group,
                         Optional.empty()
                 )

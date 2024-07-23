@@ -16,12 +16,10 @@ import edu.stanford.slac.ad.eed.baselib.model.AuthorizationOwnerType;
 import edu.stanford.slac.ad.eed.baselib.model.LocalGroup;
 import edu.stanford.slac.ad.eed.baselib.service.AuthService;
 import edu.stanford.slac.ad.eed.baselib.service.PeopleGroupService;
-import lombok.AllArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -188,27 +186,7 @@ public class AuthServiceImpl extends AuthService {
 
         // get user authorizations inherited by group
         if (!isAppToken && includeGroupForUser.isPresent() && includeGroupForUser.get().booleanValue()) {
-            // if requested return also the
-            List<String> userGroups = getGroupByUserId(owner);
-            // load all groups authorizations
-            allAuth.addAll(
-                    userGroups
-                            .stream()
-                            .map(
-                                    groupName -> authorizationRepository.findByOwnerAndOwnerTypeAndAuthorizationTypeIsGreaterThanEqualAndResourceStartingWith(
-                                            groupName,
-                                            AuthorizationOwnerType.Group,
-                                            authMapper.toModel(authorizationType).getValue(),
-                                            resourcePrefix
-
-                                    )
-                            )
-                            .flatMap(List::stream)
-                            .map(
-                                    authMapper::fromModel
-                            )
-                            .toList()
-            );
+            getAuthByGroupInheritance(owner, allAuth);
         }
         if (allHigherAuthOnSameResource.isPresent() && allHigherAuthOnSameResource.get()) {
             allAuth = allAuth.stream()
@@ -225,25 +203,6 @@ public class AuthServiceImpl extends AuthService {
         return allAuth;
     }
 
-    private List<String> getGroupByUserId(String owner) {
-        List<String> userGroups = new ArrayList<>();
-        // in case we have a user check also the groups that belongs to the user
-        userGroups.addAll(
-                peopleGroupService.findGroupByUserId(owner)
-                        .stream()
-                        .map(GroupDTO::commonName)
-                        .toList()
-        );
-
-        // get all local group
-        userGroups.addAll(
-                localGroupRepository.findAllByMembersContains(owner)
-                        .stream()
-                        .map(LocalGroup::getName)
-                        .toList()
-        );
-        return userGroups;
-    }
 
     @Override
     public List<AuthorizationDTO> getAllAuthenticationForOwner(String owner, AuthorizationOwnerTypeDTO ownerType, String resourcePrefix, Optional<Boolean> allHigherAuthOnSameResource) {
@@ -265,26 +224,7 @@ public class AuthServiceImpl extends AuthService {
 
         // get user authorizations inherited by group
         if (!isAppToken) {
-            List<String> userGroups = getGroupByUserId(owner);
-
-            // load all groups authorizations
-            allAuth.addAll(
-                    userGroups
-                            .stream()
-                            .map(
-                                    groupName -> authorizationRepository.findByOwnerAndOwnerTypeIsAndResourceStartingWith(
-                                            groupName,
-                                            AuthorizationOwnerType.Group,
-                                            resourcePrefix
-
-                                    )
-                            )
-                            .flatMap(List::stream)
-                            .map(
-                                    authMapper::fromModel
-                            )
-                            .toList()
-            );
+            getAuthByGroupInheritance(owner, allAuth);
         }
         if (allHigherAuthOnSameResource.isPresent() && allHigherAuthOnSameResource.get()) {
             allAuth = allAuth.stream()
@@ -320,26 +260,7 @@ public class AuthServiceImpl extends AuthService {
 
         // get user authorizations inherited by group
         if (includeInherited.isPresent() && includeInherited.get()) {
-            // in case we have a user check also the groups that belongs to the user
-            List<String> userGroups = getGroupByUserId(owner);
-
-            // load all groups authorizations
-            allAuth.addAll(
-                    userGroups
-                            .stream()
-                            .map(
-                                    groupName -> authorizationRepository.findByOwnerAndOwnerTypeIs(
-                                            groupName,
-                                            AuthorizationOwnerType.Group
-
-                                    )
-                            )
-                            .flatMap(List::stream)
-                            .map(
-                                    authMapper::fromModel
-                            )
-                            .toList()
-            );
+            getAuthByGroupInheritance(owner, allAuth);
         }
 
         if (allHigherAuthOnSameResource.isPresent() && allHigherAuthOnSameResource.get()) {
@@ -354,6 +275,64 @@ public class AuthServiceImpl extends AuthService {
         }
 
         return allAuth;
+    }
+
+    /**
+     * Return all the authorizations for an owner that match with the prefix
+     * and the authorizations type, if the owner is of type 'User' will be checked for all the
+     * entries all along with those that belongs to all the user groups.
+     *
+     * @param ownerId is the owner target of the result authorizations
+     * @param allAuth the container that host all the user authorizations
+     * @return the list of found resource
+     */
+    private void getAuthByGroupInheritance(String ownerId, List<AuthorizationDTO> allAuth) {
+        // in case we have a user check also the groups that belongs to the user
+        List<String> userGroups = getGroupByUserId(ownerId);
+
+        // load all groups authorizations
+        allAuth.addAll(
+                userGroups
+                        .stream()
+                        .map(
+                                groupId -> authorizationRepository.findByOwnerAndOwnerTypeIs(
+                                        groupId,
+                                        AuthorizationOwnerType.Group
+
+                                )
+                        )
+                        .flatMap(List::stream)
+                        .map(
+                                authMapper::fromModel
+                        )
+                        .toList()
+        );
+    }
+
+    /**
+     * Return all the groups where the user belongs
+     *
+     * @param ownerId the user id
+     * @return
+     */
+    private List<String> getGroupByUserId(String ownerId) {
+        List<String> userGroups = new ArrayList<>();
+        // in case we have a user check also the groups that belongs to the user
+        userGroups.addAll(
+                peopleGroupService.findGroupByUserId(ownerId)
+                        .stream()
+                        .map(GroupDTO::uid)
+                        .toList()
+        );
+
+        // get all local group
+        userGroups.addAll(
+                localGroupRepository.findAllByMembersContains(ownerId)
+                        .stream()
+                        .map(LocalGroup::getId)
+                        .toList()
+        );
+        return userGroups;
     }
 
     /**
@@ -1058,7 +1037,7 @@ public class AuthServiceImpl extends AuthService {
     @Override
     public List<AuthenticationTokenDTO> findAllAuthenticationToken(AuthenticationTokenQueryParameterDTO queryParameterDTO) {
         return wrapCatch(
-                ()->authenticationTokenRepository.findAll(
+                () -> authenticationTokenRepository.findAll(
                         authMapper.toModel(queryParameterDTO)
                 ).stream().map(
                         authMapper::toTokenDTO

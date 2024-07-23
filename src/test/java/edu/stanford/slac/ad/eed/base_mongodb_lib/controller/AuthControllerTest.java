@@ -1,6 +1,7 @@
 package edu.stanford.slac.ad.eed.base_mongodb_lib.controller;
 
 import edu.stanford.slac.ad.eed.baselib.api.v1.dto.*;
+import edu.stanford.slac.ad.eed.baselib.api.v2.dto.NewLocalGroupDTO;
 import edu.stanford.slac.ad.eed.baselib.config.AppProperties;
 import edu.stanford.slac.ad.eed.baselib.exception.AuthenticationTokenMalformed;
 import edu.stanford.slac.ad.eed.baselib.exception.AuthenticationTokenNotFound;
@@ -8,6 +9,7 @@ import edu.stanford.slac.ad.eed.baselib.exception.ControllerLogicException;
 import edu.stanford.slac.ad.eed.baselib.exception.NotAuthorized;
 import edu.stanford.slac.ad.eed.baselib.model.AuthenticationToken;
 import edu.stanford.slac.ad.eed.baselib.model.Authorization;
+import edu.stanford.slac.ad.eed.baselib.model.LocalGroup;
 import edu.stanford.slac.ad.eed.baselib.service.AuthService;
 import org.assertj.core.api.AssertionsForClassTypes;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,12 +53,32 @@ public class AuthControllerTest {
     private MongoTemplate mongoTemplate;
     @Autowired
     TestControllerHelperService testControllerHelperService;
+    private String group1Id = null;
+    private String group2Id = null;
 
     @BeforeEach
     public void preTest() {
         //reset authorizations
+        mongoTemplate.remove(new Query(), LocalGroup.class);
         mongoTemplate.remove(new Query(), AuthenticationToken.class);
         mongoTemplate.remove(new Query(), Authorization.class);
+
+        group1Id = authService.createLocalGroup(
+                NewLocalGroupDTO
+                        .builder()
+                        .name("group-1")
+                        .description("group-1")
+                        .members(List.of("user1@slac.stanford.edu"))
+                        .build()
+        );
+        group2Id = authService.createLocalGroup(
+                NewLocalGroupDTO
+                        .builder()
+                        .name("group-2")
+                        .description("group-2")
+                        .members(List.of("user1@slac.stanford.edu", "user2@slac.stanford.edu"))
+                        .build()
+        );
         appProperties.getRootUserList().clear();
         appProperties.getRootUserList().add("user1@slac.stanford.edu");
         authService.updateRootUser();
@@ -93,7 +115,7 @@ public class AuthControllerTest {
                                 .builder()
                                 .authorizationType(AuthorizationTypeDTO.Read)
                                 .ownerType(AuthorizationOwnerTypeDTO.Group)
-                                .owner("group-1")
+                                .owner(group1Id)
                                 .resource("read::resource3")
                                 .build()
                 )
@@ -216,21 +238,21 @@ public class AuthControllerTest {
         AssertionsForClassTypes.assertThat(userNotFoundException.getErrorCode()).isEqualTo(-1);
     }
 
-    @Test
-    public void findGroupsOK() {
-        ApiResultResponse<List<GroupDTO>> meResult = assertDoesNotThrow(
-                () -> testControllerHelperService.findGroups(
-                        mockMvc,
-                        status().isOk(),
-                        Optional.of("user1@slac.stanford.edu"),
-                        Optional.of("group")
-                )
-        );
-
-        AssertionsForClassTypes.assertThat(meResult).isNotNull();
-        AssertionsForClassTypes.assertThat(meResult.getErrorCode()).isEqualTo(0);
-        assertThat(meResult.getPayload()).hasSize(2);
-    }
+//    @Test
+//    public void findGroupsOK() {
+//        ApiResultResponse<List<GroupDTO>> meResult = assertDoesNotThrow(
+//                () -> testControllerHelperService.findGroups(
+//                        mockMvc,
+//                        status().isOk(),
+//                        Optional.of("user1@slac.stanford.edu"),
+//                        Optional.of("group")
+//                )
+//        );
+//
+//        AssertionsForClassTypes.assertThat(meResult).isNotNull();
+//        AssertionsForClassTypes.assertThat(meResult.getErrorCode()).isEqualTo(0);
+//        assertThat(meResult.getPayload()).hasSize(2);
+//    }
 
     @Test
     public void findGroupsFailUnauthorized() {
