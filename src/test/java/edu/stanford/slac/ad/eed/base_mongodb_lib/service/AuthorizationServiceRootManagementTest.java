@@ -87,6 +87,8 @@ public class AuthorizationServiceRootManagementTest {
         assertDoesNotThrow(
                 () -> authService.updateAutoManagedRootToken()
         );
+        Optional<AuthenticationTokenDTO> app1 = getTokenByName("token-root-a");
+        assertThat(app1).isPresent();
 
         // check created authorization
         List<Authorization> rootAuth = assertDoesNotThrow(
@@ -100,9 +102,7 @@ public class AuthorizationServiceRootManagementTest {
         assertThat(rootAuth)
                 .extracting(Authorization::getOwner)
                 .contains(
-                        "token-root-a@%s".formatted(
-                                appProperties.getAuthenticationTokenDomain()
-                        )
+                        app1.get().id()
                 );
         //check created authentication token
         List<AuthenticationToken> allTokenFound = assertDoesNotThrow(
@@ -110,11 +110,9 @@ public class AuthorizationServiceRootManagementTest {
         );
         assertThat(allTokenFound).hasSize(1);
         assertThat(allTokenFound)
-                .extracting(AuthenticationToken::getEmail)
+                .extracting(AuthenticationToken::getId)
                 .contains(
-                        "token-root-a@%s".formatted(
-                                appProperties.getAuthenticationTokenDomain()
-                        )
+                        app1.get().id()
                 );
     }
 
@@ -157,6 +155,10 @@ public class AuthorizationServiceRootManagementTest {
         assertDoesNotThrow(
                 () -> authService.updateAutoManagedRootToken()
         );
+        Optional<AuthenticationTokenDTO> app1 = getTokenByName("token-root-a");
+        assertThat(app1).isPresent();
+
+        // update list with new token
         appProperties.getRootAuthenticationTokenList().clear();
         appProperties.getRootAuthenticationTokenList().add(
                 NewAuthenticationTokenDTO
@@ -168,6 +170,9 @@ public class AuthorizationServiceRootManagementTest {
         assertDoesNotThrow(
                 () -> authService.updateAutoManagedRootToken()
         );
+        Optional<AuthenticationTokenDTO> app2 = getTokenByName("token-root-b");
+        assertThat(app2).isPresent();
+
         // check created authorization
         List<Authorization> rootAuth = assertDoesNotThrow(
                 () -> authorizationRepository.findByResourceIsAndAuthorizationTypeIsGreaterThanEqual(
@@ -180,9 +185,7 @@ public class AuthorizationServiceRootManagementTest {
         assertThat(rootAuth)
                 .extracting(Authorization::getOwner)
                 .contains(
-                        "token-root-b@%s".formatted(
-                                appProperties.getAuthenticationTokenDomain()
-                        )
+                        app2.get().id()
                 );
         //check created authentication token
         List<AuthenticationToken> allTokenFound = assertDoesNotThrow(
@@ -190,11 +193,9 @@ public class AuthorizationServiceRootManagementTest {
         );
         assertThat(allTokenFound).hasSize(1);
         assertThat(allTokenFound)
-                .extracting(AuthenticationToken::getEmail)
+                .extracting(AuthenticationToken::getId)
                 .contains(
-                        "token-root-b@%s".formatted(
-                                appProperties.getAuthenticationTokenDomain()
-                        )
+                        app2.get().id()
                 );
     }
 
@@ -530,6 +531,8 @@ public class AuthorizationServiceRootManagementTest {
         assertDoesNotThrow(() -> authService.updateRootUser());
         assertDoesNotThrow(() -> authService.updateAutoManagedRootToken());
 
+        Optional<AuthenticationTokenDTO> internalToken1 = getTokenByName("service@internal.app-1.slac.app$");
+        assertThat(internalToken1).isPresent();
         Optional<AuthenticationTokenDTO> token1 = getTokenByName("token-root-a");
         assertThat(token1).isPresent();
         Optional<AuthenticationTokenDTO> token2 = getTokenByName("token-root-b");
@@ -548,13 +551,9 @@ public class AuthorizationServiceRootManagementTest {
                 .extracting(Authorization::getOwner)
                 .contains(
                         "user1@slac.stanford.edu",
-                        "service@internal.app-1.slac.app$",
-                        "token-root-a@%s".formatted(
-                                appProperties.getAuthenticationTokenDomain()
-                        ),
-                        "token-root-b@%s".formatted(
-                                appProperties.getAuthenticationTokenDomain()
-                        )
+                        internalToken1.get().id(),
+                        token1.get().id(),
+                        token2.get().id()
                 );
 
         appProperties.getRootUserList().clear();
@@ -573,12 +572,8 @@ public class AuthorizationServiceRootManagementTest {
                 .extracting(Authorization::getOwner)
                 .contains(
                         "user1@slac.stanford.edu",
-                        "token-root-a@%s".formatted(
-                                appProperties.getAuthenticationTokenDomain()
-                        ),
-                        "token-root-b@%s".formatted(
-                                appProperties.getAuthenticationTokenDomain()
-                        )
+                        token1.get().id(),
+                        token2.get().id()
                 );
     }
 }

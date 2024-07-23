@@ -23,6 +23,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -337,6 +338,10 @@ public class AuthServiceImpl extends AuthService {
      */
     public void updateRootUser() {
         log.info("Find current authorizations");
+        // remove internal service email from the root user list, they are managed automatically in the token list
+        List<String> rootUserList = appProperties.getRootUserList().stream().filter(
+                email -> !email.contains("@internal.")
+        ).toList();
         //load actual root
         List<Authorization> currentRootUser = wrapCatch(
                 () -> authorizationRepository.findByResourceIsAndAuthorizationTypeIsGreaterThanEqualAndOwnerTypeIs(
@@ -368,7 +373,7 @@ public class AuthServiceImpl extends AuthService {
                 Authorization::getOwner
         ).toList().stream().filter(
                 userEmail -> !wrapCatch(
-                        () -> appProperties.getRootUserList().contains(userEmail),
+                        () -> rootUserList.contains(userEmail),
                         -2,
                         "AuthService::updateRootUser"
                 )
@@ -392,9 +397,9 @@ public class AuthServiceImpl extends AuthService {
         }
 
         // ensure current root users
-        log.info("Ensure root authorizations for: {}", appProperties.getRootUserList());
+        log.info("Ensure root authorizations for: {}", rootUserList);
         for (String userEmail :
-                appProperties.getRootUserList()) {
+                rootUserList) {
             // find root authorizations for user email
             Optional<Authorization> rootAuth = wrapCatch(
                     () -> authorizationRepository.findByOwnerIsAndResourceIsAndAuthorizationTypeIsGreaterThanEqual(
@@ -434,6 +439,28 @@ public class AuthServiceImpl extends AuthService {
     @Transactional
     public void updateAutoManagedRootToken() {
         log.info("Find current authentication token app managed");
+
+        log.info("Find root user that need to became a another microservice root token");
+        List<String> rootMicroservicesEmails = appProperties.getRootUserList().stream().filter(
+                email->email.contains("@internal.")
+        ).toList();
+        for (String rootMicroserviceEmail :
+                rootMicroservicesEmails) {
+            log.info("Prefill token description for microservice email {}", rootMicroserviceEmail);
+            appProperties.getRootAuthenticationTokenList().add(
+                    NewAuthenticationTokenDTO
+                            .builder()
+                            .name(rootMicroserviceEmail)
+                            .expiration(LocalDate.now().plus(1, java.time.temporal.ChronoUnit.YEARS))
+                            .build()
+            );
+        }
+
+        // now remove token for internal service no more needed
+        appProperties.getRootAuthenticationTokenList().removeIf(
+                token -> token.name().contains("@internal.") && !rootMicroservicesEmails.contains(token.name())
+        );
+
         //load actual root
         if (appProperties.getRootAuthenticationTokenList().isEmpty()) {
             List<AuthenticationToken> foundAuthenticationTokens = wrapCatch(
@@ -498,6 +525,7 @@ public class AuthServiceImpl extends AuthService {
                         () -> authenticationTokenRepository.save(
                                 getAuthenticationToken(
                                         newAuthenticationTokenDTO,
+                                        (newAuthenticationTokenDTO.name().contains("@internal.") ? newAuthenticationTokenDTO.name() : null),
                                         true
                                 )
                         ),
@@ -683,7 +711,7 @@ public class AuthServiceImpl extends AuthService {
     /**
      * Remove user identified by email as root user
      *
-     * @param email that identify the user
+     * @param ownerId that identify the user
      */
     public void removeRootAuthorization(String ownerId) {
         boolean isUser = appProperties.isAuthenticationToken(ownerId);
@@ -974,7 +1002,21 @@ public class AuthServiceImpl extends AuthService {
                 .build();
     }
 
+    /**
+     * Add a new authentication token
+     *
+     * @param newAuthenticationTokenDTO is the new token information
+     */
     private AuthenticationToken getAuthenticationToken(NewAuthenticationTokenDTO newAuthenticationTokenDTO, boolean appManaged) {
+        return getAuthenticationToken(newAuthenticationTokenDTO, null, appManaged);
+    }
+
+    /**
+     * Add a new authentication token
+     *
+     * @param newAuthenticationTokenDTO is the new token information
+     */
+    private AuthenticationToken getAuthenticationToken(NewAuthenticationTokenDTO newAuthenticationTokenDTO, String prefilledEmail, boolean appManaged) {
         AuthenticationToken authTok = authMapper.toModelGlobalToken(
                 newAuthenticationTokenDTO.toBuilder()
                         .name(
@@ -988,6 +1030,7 @@ public class AuthServiceImpl extends AuthService {
         );
         return authTok.toBuilder()
                 .applicationManaged(appManaged)
+                .email(prefilledEmail != null ? prefilledEmail : authTok.getEmail())
                 .token(
                         jwtHelper.generateAuthenticationToken(
                                 authTok
