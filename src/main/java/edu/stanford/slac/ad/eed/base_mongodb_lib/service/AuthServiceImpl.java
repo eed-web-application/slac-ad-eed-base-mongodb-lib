@@ -16,15 +16,14 @@ import edu.stanford.slac.ad.eed.baselib.model.AuthorizationOwnerType;
 import edu.stanford.slac.ad.eed.baselib.model.LocalGroup;
 import edu.stanford.slac.ad.eed.baselib.service.AuthService;
 import edu.stanford.slac.ad.eed.baselib.service.PeopleGroupService;
-import lombok.AllArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -94,7 +93,6 @@ public class AuthServiceImpl extends AuthService {
 
     @Override
     public void deleteAuthorizationForResourcePrefix(String resourcePrefix, String ownerId, AuthorizationOwnerTypeDTO ownerType) {
-        ;
         wrapCatch(
                 () -> {
                     authorizationRepository.deleteAllByResourceStartingWithAndOwnerIsAndOwnerTypeIs(
@@ -168,14 +166,14 @@ public class AuthServiceImpl extends AuthService {
      */
     @Override
     @Cacheable(value = "user-authorization", key = "{#owner, #authorizationType, #resourcePrefix, #allHigherAuthOnSameResource, #includeGroupForUser}")
-    public List<AuthorizationDTO> getAllAuthorizationForOwnerAndAndAuthTypeAndResourcePrefix(String owner, AuthorizationTypeDTO authorizationType, String resourcePrefix, Optional<Boolean> allHigherAuthOnSameResource, Optional<Boolean> includeGroupForUser) {
-        boolean isAppToken = appProperties.isAuthenticationToken(owner);
+    public List<AuthorizationDTO> getAllAuthorizationForOwnerAndAndAuthTypeAndResourcePrefix(String ownerId, AuthorizationTypeDTO authorizationType, String resourcePrefix, Optional<Boolean> allHigherAuthOnSameResource, Optional<Boolean> includeGroupForUser) {
+        String realOwnerId = returnRealId(ownerId);
         // get user authorizations
         List<AuthorizationDTO> allAuth = new ArrayList<>(
                 wrapCatch(
                         () -> authorizationRepository.findByOwnerAndOwnerTypeAndAuthorizationTypeIsGreaterThanEqualAndResourceStartingWith(
-                                owner,
-                                isAppToken ? AuthorizationOwnerType.Token : AuthorizationOwnerType.User,
+                                realOwnerId,
+                                realOwnerId.contains("@") ? AuthorizationOwnerType.User:AuthorizationOwnerType.Token,
                                 authMapper.toModel(authorizationType).getValue(),
                                 resourcePrefix
                         ),
@@ -187,28 +185,8 @@ public class AuthServiceImpl extends AuthService {
         );
 
         // get user authorizations inherited by group
-        if (!isAppToken && includeGroupForUser.isPresent() && includeGroupForUser.get().booleanValue()) {
-            // if requested return also the
-            List<String> userGroups = getGroupByUserId(owner);
-            // load all groups authorizations
-            allAuth.addAll(
-                    userGroups
-                            .stream()
-                            .map(
-                                    groupName -> authorizationRepository.findByOwnerAndOwnerTypeAndAuthorizationTypeIsGreaterThanEqualAndResourceStartingWith(
-                                            groupName,
-                                            AuthorizationOwnerType.Group,
-                                            authMapper.toModel(authorizationType).getValue(),
-                                            resourcePrefix
-
-                                    )
-                            )
-                            .flatMap(List::stream)
-                            .map(
-                                    authMapper::fromModel
-                            )
-                            .toList()
-            );
+        if (includeGroupForUser.isPresent() && includeGroupForUser.get().booleanValue()) {
+            getAuthByGroupInheritance(realOwnerId, allAuth);
         }
         if (allHigherAuthOnSameResource.isPresent() && allHigherAuthOnSameResource.get()) {
             allAuth = allAuth.stream()
@@ -225,29 +203,9 @@ public class AuthServiceImpl extends AuthService {
         return allAuth;
     }
 
-    private List<String> getGroupByUserId(String owner) {
-        List<String> userGroups = new ArrayList<>();
-        // in case we have a user check also the groups that belongs to the user
-        userGroups.addAll(
-                peopleGroupService.findGroupByUserId(owner)
-                        .stream()
-                        .map(GroupDTO::commonName)
-                        .toList()
-        );
-
-        // get all local group
-        userGroups.addAll(
-                localGroupRepository.findAllByMembersContains(owner)
-                        .stream()
-                        .map(LocalGroup::getName)
-                        .toList()
-        );
-        return userGroups;
-    }
 
     @Override
     public List<AuthorizationDTO> getAllAuthenticationForOwner(String owner, AuthorizationOwnerTypeDTO ownerType, String resourcePrefix, Optional<Boolean> allHigherAuthOnSameResource) {
-        boolean isAppToken = appProperties.isAuthenticationToken(owner);
         // get user authorizations
         List<AuthorizationDTO> allAuth = new ArrayList<>(
                 wrapCatch(
@@ -264,28 +222,8 @@ public class AuthServiceImpl extends AuthService {
         );
 
         // get user authorizations inherited by group
-        if (!isAppToken) {
-            List<String> userGroups = getGroupByUserId(owner);
+        getAuthByGroupInheritance(owner, allAuth);
 
-            // load all groups authorizations
-            allAuth.addAll(
-                    userGroups
-                            .stream()
-                            .map(
-                                    groupName -> authorizationRepository.findByOwnerAndOwnerTypeIsAndResourceStartingWith(
-                                            groupName,
-                                            AuthorizationOwnerType.Group,
-                                            resourcePrefix
-
-                                    )
-                            )
-                            .flatMap(List::stream)
-                            .map(
-                                    authMapper::fromModel
-                            )
-                            .toList()
-            );
-        }
         if (allHigherAuthOnSameResource.isPresent() && allHigherAuthOnSameResource.get()) {
             allAuth = allAuth.stream()
                     .collect(
@@ -303,8 +241,7 @@ public class AuthServiceImpl extends AuthService {
 
     @Override
     public List<AuthorizationDTO> getAllAuthenticationForOwner(String owner, AuthorizationOwnerTypeDTO ownerType, Optional<Boolean> allHigherAuthOnSameResource, Optional<Boolean> includeInherited) {
-        boolean isAppToken = appProperties.isAuthenticationToken(owner);
-// get user authorizations
+        // get user authorizations
         List<AuthorizationDTO> allAuth = new ArrayList<>(
                 wrapCatch(
                         () -> authorizationRepository.findByOwnerAndOwnerTypeIs(
@@ -320,26 +257,7 @@ public class AuthServiceImpl extends AuthService {
 
         // get user authorizations inherited by group
         if (includeInherited.isPresent() && includeInherited.get()) {
-            // in case we have a user check also the groups that belongs to the user
-            List<String> userGroups = getGroupByUserId(owner);
-
-            // load all groups authorizations
-            allAuth.addAll(
-                    userGroups
-                            .stream()
-                            .map(
-                                    groupName -> authorizationRepository.findByOwnerAndOwnerTypeIs(
-                                            groupName,
-                                            AuthorizationOwnerType.Group
-
-                                    )
-                            )
-                            .flatMap(List::stream)
-                            .map(
-                                    authMapper::fromModel
-                            )
-                            .toList()
-            );
+            getAuthByGroupInheritance(owner, allAuth);
         }
 
         if (allHigherAuthOnSameResource.isPresent() && allHigherAuthOnSameResource.get()) {
@@ -357,10 +275,72 @@ public class AuthServiceImpl extends AuthService {
     }
 
     /**
+     * Return all the authorizations for an owner that match with the prefix
+     * and the authorizations type, if the owner is of type 'User' will be checked for all the
+     * entries all along with those that belongs to all the user groups.
+     *
+     * @param ownerId is the owner target of the result authorizations
+     * @param allAuth the container that host all the user authorizations
+     * @return the list of found resource
+     */
+    private void getAuthByGroupInheritance(String ownerId, List<AuthorizationDTO> allAuth) {
+        // in case we have a user check also the groups that belongs to the user
+        List<String> userGroups = getGroupByUserId(ownerId);
+
+        // load all groups authorizations
+        allAuth.addAll(
+                userGroups
+                        .stream()
+                        .map(
+                                groupId -> authorizationRepository.findByOwnerAndOwnerTypeIs(
+                                        groupId,
+                                        AuthorizationOwnerType.Group
+
+                                )
+                        )
+                        .flatMap(List::stream)
+                        .map(
+                                authMapper::fromModel
+                        )
+                        .toList()
+        );
+    }
+
+    /**
+     * Return all the groups where the user belongs
+     *
+     * @param ownerId the user id
+     * @return
+     */
+    private List<String> getGroupByUserId(String ownerId) {
+        List<String> userGroups = new ArrayList<>();
+        // in case we have a user check also the groups that belongs to the user
+        userGroups.addAll(
+                peopleGroupService.findGroupByUserId(ownerId)
+                        .stream()
+                        .map(GroupDTO::uid)
+                        .toList()
+        );
+
+        // get all local group
+        userGroups.addAll(
+                localGroupRepository.findAllByMembersContains(ownerId)
+                        .stream()
+                        .map(LocalGroup::getId)
+                        .toList()
+        );
+        return userGroups;
+    }
+
+    /**
      * Update all configured root user
      */
     public void updateRootUser() {
         log.info("Find current authorizations");
+        // remove internal service email from the root user list, they are managed automatically in the token list
+        List<String> rootUserList = appProperties.getRootUserList().stream().filter(
+                email -> !email.contains("@internal.")
+        ).toList();
         //load actual root
         List<Authorization> currentRootUser = wrapCatch(
                 () -> authorizationRepository.findByResourceIsAndAuthorizationTypeIsGreaterThanEqualAndOwnerTypeIs(
@@ -392,7 +372,7 @@ public class AuthServiceImpl extends AuthService {
                 Authorization::getOwner
         ).toList().stream().filter(
                 userEmail -> !wrapCatch(
-                        () -> appProperties.getRootUserList().contains(userEmail),
+                        () -> rootUserList.contains(userEmail),
                         -2,
                         "AuthService::updateRootUser"
                 )
@@ -416,9 +396,9 @@ public class AuthServiceImpl extends AuthService {
         }
 
         // ensure current root users
-        log.info("Ensure root authorizations for: {}", appProperties.getRootUserList());
+        log.info("Ensure root authorizations for: {}", rootUserList);
         for (String userEmail :
-                appProperties.getRootUserList()) {
+                rootUserList) {
             // find root authorizations for user email
             Optional<Authorization> rootAuth = wrapCatch(
                     () -> authorizationRepository.findByOwnerIsAndResourceIsAndAuthorizationTypeIsGreaterThanEqual(
@@ -458,6 +438,28 @@ public class AuthServiceImpl extends AuthService {
     @Transactional
     public void updateAutoManagedRootToken() {
         log.info("Find current authentication token app managed");
+
+        log.info("Find root user that need to became a another microservice root token");
+        List<String> rootMicroservicesEmails = appProperties.getRootUserList().stream().filter(
+                email->email.contains("@internal.")
+        ).toList();
+        for (String rootMicroserviceEmail :
+                rootMicroservicesEmails) {
+            log.info("Prefill token description for microservice email {}", rootMicroserviceEmail);
+            appProperties.getRootAuthenticationTokenList().add(
+                    NewAuthenticationTokenDTO
+                            .builder()
+                            .name(rootMicroserviceEmail)
+                            .expiration(LocalDate.now().plus(1, java.time.temporal.ChronoUnit.YEARS))
+                            .build()
+            );
+        }
+
+        // now remove token for internal service no more needed
+        appProperties.getRootAuthenticationTokenList().removeIf(
+                token -> token.name().contains("@internal.") && !rootMicroservicesEmails.contains(token.name())
+        );
+
         //load actual root
         if (appProperties.getRootAuthenticationTokenList().isEmpty()) {
             List<AuthenticationToken> foundAuthenticationTokens = wrapCatch(
@@ -474,7 +476,7 @@ public class AuthServiceImpl extends AuthService {
 
                 wrapCatch(
                         () -> {
-                            authorizationRepository.deleteAllByOwnerIs(authToken.getEmail());
+                            authorizationRepository.deleteAllByOwnerIs(authToken.getId());
                             return null;
                         },
                         -3,
@@ -522,6 +524,7 @@ public class AuthServiceImpl extends AuthService {
                         () -> authenticationTokenRepository.save(
                                 getAuthenticationToken(
                                         newAuthenticationTokenDTO,
+                                        (newAuthenticationTokenDTO.name().contains("@internal.") ? newAuthenticationTokenDTO.name() : null),
                                         true
                                 )
                         ),
@@ -535,7 +538,7 @@ public class AuthServiceImpl extends AuthService {
                                 Authorization
                                         .builder()
                                         .authorizationType(authMapper.toModel(Admin).getValue())
-                                        .owner(newAuthTok.getEmail())
+                                        .owner(newAuthTok.getId())
                                         .ownerType(AuthorizationOwnerType.Token)
                                         .resource("*")
                                         .creationBy(appName)
@@ -575,14 +578,13 @@ public class AuthServiceImpl extends AuthService {
     }
 
     @Override
-    public void addRootAuthorization(String email, String creator) {
-        boolean isAuthToken = appProperties.isAuthenticationToken(email);
-
+    public void addRootAuthorization(String ownerId, String creator) {
+        boolean isUser = ownerId.contains("@");
         // check fi the user or app token exists
-        if (isAuthToken) {
-            // create root for global token
+        if (!isUser) {
+            // try to check if the id is an application token
             var authenticationTokenFound = authenticationTokenRepository
-                    .findByEmailIs(email)
+                    .findById(ownerId)
                     .orElseThrow(
                             () -> AuthenticationTokenNotFound.authTokenNotFoundBuilder()
                                     .errorCode(-2)
@@ -593,7 +595,7 @@ public class AuthServiceImpl extends AuthService {
                     ControllerLogicException
                             .builder()
                             .errorCode(-3)
-                            .errorMessage("Authentication Token managed byt the elog application cannot be managed by user")
+                            .errorMessage("Authentication Token managed by the application cannot be managed by user")
                             .errorDomain("AuthService::addRootAuthorization")
                             .build(),
                     // should be not an application managed app token
@@ -602,7 +604,7 @@ public class AuthServiceImpl extends AuthService {
         } else {
             // find the user
             assertion(
-                    () -> peopleGroupService.findPersonByEMail(email) != null,
+                    () -> peopleGroupService.findPersonByEMail(ownerId) != null,
                     PersonNotFound.personNotFoundBuilder()
                             .errorCode(-4)
                             .errorDomain("AuthService::addRootAuthorization")
@@ -610,9 +612,9 @@ public class AuthServiceImpl extends AuthService {
             );
         }
 
-        // check if root authorization is already benn granted
+        // check if root authorization is already been granted
         Optional<Authorization> rootAuth = authorizationRepository.findByOwnerIsAndResourceIsAndAuthorizationTypeIsGreaterThanEqual(
-                email,
+                ownerId,
                 "*",
                 authMapper.toModel(Admin).getValue()
         );
@@ -622,8 +624,8 @@ public class AuthServiceImpl extends AuthService {
                         Authorization
                                 .builder()
                                 .authorizationType(authMapper.toModel(Admin).getValue())
-                                .owner(email)
-                                .ownerType(isAuthToken ? AuthorizationOwnerType.Token : AuthorizationOwnerType.User)
+                                .owner(ownerId)
+                                .ownerType(isUser ? AuthorizationOwnerType.User:AuthorizationOwnerType.Token)
                                 .resource("*")
                                 .creationBy(creator)
                                 .build()
@@ -708,14 +710,14 @@ public class AuthServiceImpl extends AuthService {
     /**
      * Remove user identified by email as root user
      *
-     * @param email that identify the user
+     * @param ownerId that identify the user
      */
-    public void removeRootAuthorization(String email) {
-        boolean isAppToken = appProperties.isAuthenticationToken(email);
-        if (isAppToken) {
+    public void removeRootAuthorization(String ownerId) {
+        boolean isUser = appProperties.isAuthenticationToken(ownerId);
+        if (!isUser) {
             // check if the authentication token exists before remove
             var authenticationTokenFound = authenticationTokenRepository
-                    .findByEmailIs(email)
+                    .findById(ownerId)
                     .orElseThrow(
                             () -> AuthenticationTokenNotFound.authTokenNotFoundBuilder()
                                     .errorCode(-1)
@@ -734,7 +736,7 @@ public class AuthServiceImpl extends AuthService {
             );
         }
         Optional<Authorization> rootAuth = authorizationRepository.findByOwnerIsAndResourceIsAndAuthorizationTypeIsGreaterThanEqual(
-                email,
+                ownerId,
                 "*",
                 authMapper.toModel(Admin).getValue()
         );
@@ -999,7 +1001,21 @@ public class AuthServiceImpl extends AuthService {
                 .build();
     }
 
+    /**
+     * Add a new authentication token
+     *
+     * @param newAuthenticationTokenDTO is the new token information
+     */
     private AuthenticationToken getAuthenticationToken(NewAuthenticationTokenDTO newAuthenticationTokenDTO, boolean appManaged) {
+        return getAuthenticationToken(newAuthenticationTokenDTO, null, appManaged);
+    }
+
+    /**
+     * Add a new authentication token
+     *
+     * @param newAuthenticationTokenDTO is the new token information
+     */
+    private AuthenticationToken getAuthenticationToken(NewAuthenticationTokenDTO newAuthenticationTokenDTO, String prefilledEmail, boolean appManaged) {
         AuthenticationToken authTok = authMapper.toModelGlobalToken(
                 newAuthenticationTokenDTO.toBuilder()
                         .name(
@@ -1013,6 +1029,7 @@ public class AuthServiceImpl extends AuthService {
         );
         return authTok.toBuilder()
                 .applicationManaged(appManaged)
+                .email(prefilledEmail != null ? prefilledEmail : authTok.getEmail())
                 .token(
                         jwtHelper.generateAuthenticationToken(
                                 authTok
@@ -1058,7 +1075,7 @@ public class AuthServiceImpl extends AuthService {
     @Override
     public List<AuthenticationTokenDTO> findAllAuthenticationToken(AuthenticationTokenQueryParameterDTO queryParameterDTO) {
         return wrapCatch(
-                ()->authenticationTokenRepository.findAll(
+                () -> authenticationTokenRepository.findAll(
                         authMapper.toModel(queryParameterDTO)
                 ).stream().map(
                         authMapper::toTokenDTO
@@ -1073,8 +1090,8 @@ public class AuthServiceImpl extends AuthService {
      * @param id the token id
      */
     @Transactional
-    public void deleteToken(String id) {
-        AuthenticationTokenDTO tokenToDelete = getAuthenticationTokenById(id)
+    public void deleteToken(String tokenId) {
+        AuthenticationTokenDTO tokenToDelete = getAuthenticationTokenById(tokenId)
                 .orElseThrow(
                         () -> AuthenticationTokenNotFound.authTokenNotFoundBuilder()
                                 .errorCode(-1)
@@ -1093,7 +1110,7 @@ public class AuthServiceImpl extends AuthService {
         //delete authorizations
         wrapCatch(
                 () -> {
-                    authorizationRepository.deleteAllByOwnerIs(tokenToDelete.email());
+                    authorizationRepository.deleteAllByOwnerIs(tokenToDelete.id());
                     return null;
                 },
                 -2,
@@ -1350,4 +1367,17 @@ public class AuthServiceImpl extends AuthService {
         );
     }
 
+    /**
+     * Return the real id to use to search the authorizations
+     * only in case of appToken it need to search for the id
+     * @param ownerId the owner id
+     * @return
+     */
+    private String returnRealId(String ownerId) {
+        var authToken = getAuthenticationTokenByEmail(ownerId);
+        if (authToken.isPresent()) {
+            return authToken.get().id();
+        }
+        return ownerId;
+    }
 }

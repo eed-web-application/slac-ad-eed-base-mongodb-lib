@@ -14,6 +14,22 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v0
+        with:
+          versionSpec: '5.x'
+      - name: Determine Version
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v0
+        with:
+          useConfigFile: true
+      - name: Manage Version
+        run: |
+          echo "Modify build.gradle for with version number \"$GitVersion_fullSemVer\""
+          sed -i "s#^.*version.*=.*#version = '$GitVersion_fullSemVer'#" build.gradle
+          cat build.gradle
       - uses: actions/setup-java@v3
         with:
           distribution: temurin
@@ -55,3 +71,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           min-coverage-overall: 30
           min-coverage-changed-files: 60
+      - name: Publish package
+        uses: gradle/gradle-build-action@v2
+        with:
+          arguments: publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

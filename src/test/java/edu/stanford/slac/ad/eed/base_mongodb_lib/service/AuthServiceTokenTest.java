@@ -238,7 +238,7 @@ public class AuthServiceTokenTest {
                                 .builder()
                                 .authorizationType(Read.getValue())
                                 .resource("r1")
-                                .owner(newAuthToken1.email())
+                                .owner(newAuthToken1.id())
                                 .ownerType(AuthorizationOwnerType.Token)
                                 .build()
                 )

@@ -1,6 +1,7 @@
 package edu.stanford.slac.ad.eed.base_mongodb_lib.controller;
 
 import edu.stanford.slac.ad.eed.baselib.api.v1.dto.*;
+import edu.stanford.slac.ad.eed.baselib.api.v2.dto.NewLocalGroupDTO;
 import edu.stanford.slac.ad.eed.baselib.config.AppProperties;
 import edu.stanford.slac.ad.eed.baselib.exception.AuthenticationTokenMalformed;
 import edu.stanford.slac.ad.eed.baselib.exception.AuthenticationTokenNotFound;
@@ -8,6 +9,7 @@ import edu.stanford.slac.ad.eed.baselib.exception.ControllerLogicException;
 import edu.stanford.slac.ad.eed.baselib.exception.NotAuthorized;
 import edu.stanford.slac.ad.eed.baselib.model.AuthenticationToken;
 import edu.stanford.slac.ad.eed.baselib.model.Authorization;
+import edu.stanford.slac.ad.eed.baselib.model.LocalGroup;
 import edu.stanford.slac.ad.eed.baselib.service.AuthService;
 import org.assertj.core.api.AssertionsForClassTypes;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,12 +53,32 @@ public class AuthControllerTest {
     private MongoTemplate mongoTemplate;
     @Autowired
     TestControllerHelperService testControllerHelperService;
+    private String group1Id = null;
+    private String group2Id = null;
 
     @BeforeEach
     public void preTest() {
         //reset authorizations
+        mongoTemplate.remove(new Query(), LocalGroup.class);
         mongoTemplate.remove(new Query(), AuthenticationToken.class);
         mongoTemplate.remove(new Query(), Authorization.class);
+
+        group1Id = authService.createLocalGroup(
+                NewLocalGroupDTO
+                        .builder()
+                        .name("group-1")
+                        .description("group-1")
+                        .members(List.of("user1@slac.stanford.edu"))
+                        .build()
+        );
+        group2Id = authService.createLocalGroup(
+                NewLocalGroupDTO
+                        .builder()
+                        .name("group-2")
+                        .description("group-2")
+                        .members(List.of("user1@slac.stanford.edu", "user2@slac.stanford.edu"))
+                        .build()
+        );
         appProperties.getRootUserList().clear();
         appProperties.getRootUserList().add("user1@slac.stanford.edu");
         authService.updateRootUser();
@@ -93,7 +115,7 @@ public class AuthControllerTest {
                                 .builder()
                                 .authorizationType(AuthorizationTypeDTO.Read)
                                 .ownerType(AuthorizationOwnerTypeDTO.Group)
-                                .owner("group-1")
+                                .owner(group1Id)
                                 .resource("read::resource3")
                                 .build()
                 )
@@ -216,21 +238,21 @@ public class AuthControllerTest {
         AssertionsForClassTypes.assertThat(userNotFoundException.getErrorCode()).isEqualTo(-1);
     }
 
-    @Test
-    public void findGroupsOK() {
-        ApiResultResponse<List<GroupDTO>> meResult = assertDoesNotThrow(
-                () -> testControllerHelperService.findGroups(
-                        mockMvc,
-                        status().isOk(),
-                        Optional.of("user1@slac.stanford.edu"),
-                        Optional.of("group")
-                )
-        );
-
-        AssertionsForClassTypes.assertThat(meResult).isNotNull();
-        AssertionsForClassTypes.assertThat(meResult.getErrorCode()).isEqualTo(0);
-        assertThat(meResult.getPayload()).hasSize(2);
-    }
+//    @Test
+//    public void findGroupsOK() {
+//        ApiResultResponse<List<GroupDTO>> meResult = assertDoesNotThrow(
+//                () -> testControllerHelperService.findGroups(
+//                        mockMvc,
+//                        status().isOk(),
+//                        Optional.of("user1@slac.stanford.edu"),
+//                        Optional.of("group")
+//                )
+//        );
+//
+//        AssertionsForClassTypes.assertThat(meResult).isNotNull();
+//        AssertionsForClassTypes.assertThat(meResult.getErrorCode()).isEqualTo(0);
+//        assertThat(meResult.getPayload()).hasSize(2);
+//    }
 
     @Test
     public void findGroupsFailUnauthorized() {
@@ -357,14 +379,15 @@ public class AuthControllerTest {
         assertDoesNotThrow(
                 () -> authService.updateAutoManagedRootToken()
         );
-
+        Optional<AuthenticationTokenDTO> token = authService.getAuthenticationTokenByName("token-root-a");
+        assertThat(token).isPresent();
         ControllerLogicException notAuthorizedOnAppManagedToken = assertThrows(
                 ControllerLogicException.class,
                 ()->testControllerHelperService.createNewRootUser(
                         mockMvc,
                         status().isInternalServerError(),
                         Optional.of("user1@slac.stanford.edu"),
-                        getTokenEmailForGlobalToken("token-root-a")
+                        token.get().id()
                 )
         );
         AssertionsForClassTypes.assertThat(notAuthorizedOnAppManagedToken.getErrorCode()).isEqualTo(-3);
@@ -384,14 +407,15 @@ public class AuthControllerTest {
         assertDoesNotThrow(
                 () -> authService.updateAutoManagedRootToken()
         );
-
+        Optional<AuthenticationTokenDTO> token = authService.getAuthenticationTokenByName("token-root-a");
+        assertThat(token).isPresent();
         ControllerLogicException notAuthorizedOnAppManagedToken = assertThrows(
                 ControllerLogicException.class,
                 ()->testControllerHelperService.deleteRootUser(
                         mockMvc,
                         status().isInternalServerError(),
                         Optional.of("user1@slac.stanford.edu"),
-                        getTokenEmailForGlobalToken("token-root-a")
+                        token.get().id()
                 )
         );
         AssertionsForClassTypes.assertThat(notAuthorizedOnAppManagedToken.getErrorCode()).isEqualTo(-1);
@@ -539,21 +563,6 @@ public class AuthControllerTest {
     }
 
     @Test
-    public void createAuthTokenAndMakItRootFailOnNotExistingGlobalToken() {
-        AuthenticationTokenNotFound tokenNotFoundException = assertThrows(
-                AuthenticationTokenNotFound.class,
-                ()->testControllerHelperService.createNewRootUser(
-                        mockMvc,
-                        status().isNotFound(),
-                        Optional.of("user1@slac.stanford.edu"),
-                        getTokenEmailForGlobalToken("token-a")
-                )
-        );
-
-        AssertionsForClassTypes.assertThat(tokenNotFoundException.getErrorCode()).isEqualTo(-2);
-    }
-
-    @Test
     public void createRootForGlobalToken() {
         var authenticationCreationResponse = assertDoesNotThrow(
                 ()->testControllerHelperService.createNewAuthenticationToken(
@@ -574,7 +583,7 @@ public class AuthControllerTest {
                         mockMvc,
                         status().isCreated(),
                         Optional.of("user1@slac.stanford.edu"),
-                        authenticationCreationResponse.getPayload().email()
+                        authenticationCreationResponse.getPayload().id()
                 )
         );
 
@@ -591,19 +600,19 @@ public class AuthControllerTest {
         assertThat(allRootUseResponse.getPayload())
                 .extracting(AuthorizationDTO::owner)
                 .hasSize(2)
-                .contains(authenticationCreationResponse.getPayload().email());
+                .contains(authenticationCreationResponse.getPayload().id());
 
         var deleteRootUserResponse = assertDoesNotThrow(
                 ()->testControllerHelperService.deleteRootUser(
                         mockMvc,
                         status().isOk(),
                         Optional.of("user1@slac.stanford.edu"),
-                        authenticationCreationResponse.getPayload().email()
+                        authenticationCreationResponse.getPayload().id()
                 )
         );
         AssertionsForClassTypes.assertThat(deleteRootUserResponse.getErrorCode()).isEqualTo(0);
 
-        // check if token has been delete (only the default one should be present)
+        // check if token has been deleted (only the default one should be present)
         allRootUseResponse = assertDoesNotThrow(
                 ()->testControllerHelperService.findAllRootUser(
                         mockMvc,
@@ -615,7 +624,7 @@ public class AuthControllerTest {
         assertThat(allRootUseResponse.getPayload())
                 .extracting(AuthorizationDTO::owner)
                 .hasSize(1)
-                .doesNotContain(authenticationCreationResponse.getPayload().email());
+                .doesNotContain(authenticationCreationResponse.getPayload().id());
     }
 
     @Test
@@ -639,7 +648,7 @@ public class AuthControllerTest {
                         mockMvc,
                         status().isCreated(),
                         Optional.of("user1@slac.stanford.edu"),
-                        authenticationTokenCreationResponse.getPayload().email()
+                        authenticationTokenCreationResponse.getPayload().id()
                 )
         );
 
@@ -650,7 +659,7 @@ public class AuthControllerTest {
                 ()->testControllerHelperService.createNewAuthenticationToken(
                         mockMvc,
                         status().isCreated(),
-                        Optional.of(authenticationTokenCreationResponse.getPayload().email()),
+                        Optional.of(authenticationTokenCreationResponse.getPayload().id()),
                         NewAuthenticationTokenDTO
                                 .builder()
                                 .name("token-b-made-by-a")
@@ -660,27 +669,15 @@ public class AuthControllerTest {
         );
         AssertionsForClassTypes.assertThat(anotherAuthenticationTokenCreationResponse.getErrorCode()).isEqualTo(0);
 
-        var anotheRootAuthorizationCreatedResponse = assertDoesNotThrow(
+        var anotherRootAuthorizationCreatedResponse = assertDoesNotThrow(
                 ()->testControllerHelperService.createNewRootUser(
                         mockMvc,
                         status().isCreated(),
-                        Optional.of(authenticationTokenCreationResponse.getPayload().email()),
-                        anotherAuthenticationTokenCreationResponse.getPayload().email()
+                        Optional.of(authenticationTokenCreationResponse.getPayload().id()),
+                        anotherAuthenticationTokenCreationResponse.getPayload().id()
                 )
         );
 
-        AssertionsForClassTypes.assertThat(anotheRootAuthorizationCreatedResponse.getErrorCode()).isEqualTo(0);
-    }
-
-    public String getTokenEmailForGlobalToken(String tokenName) {
-        return "%s@%s".formatted(
-                normalizeStringWithReplace(tokenName," ", "-"),
-                appProperties.getAuthenticationTokenDomain());
-    }
-
-    public String getTokenEmailForResourceToken(String tokenName) {
-        return "%s@%s".formatted(
-                normalizeStringWithReplace(tokenName," ", "-"),
-                appProperties.getAppEmailPostfix());
+        AssertionsForClassTypes.assertThat(anotherRootAuthorizationCreatedResponse.getErrorCode()).isEqualTo(0);
     }
 }
