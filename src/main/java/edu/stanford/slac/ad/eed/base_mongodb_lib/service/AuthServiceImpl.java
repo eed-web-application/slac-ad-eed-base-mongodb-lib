@@ -1359,9 +1359,9 @@ public class AuthServiceImpl extends AuthService {
         ).map(
                 localGroupMapper::toDTO
         ).orElseThrow(
-                () -> ControllerLogicException.builder()
+                () -> GroupNotFound.groupNotFound()
                         .errorCode(-2)
-                        .errorMessage("Local group of id %s not found".formatted(localGroupId))
+                        .groupId(localGroupId)
                         .errorDomain("AuthService::findLocalGroupById")
                         .build()
         );

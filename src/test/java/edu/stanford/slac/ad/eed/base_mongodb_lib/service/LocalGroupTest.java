@@ -8,6 +8,7 @@ import edu.stanford.slac.ad.eed.baselib.api.v1.dto.AuthorizationTypeDTO;
 import edu.stanford.slac.ad.eed.baselib.api.v1.dto.NewAuthorizationDTO;
 import edu.stanford.slac.ad.eed.baselib.api.v1.dto.PersonDTO;
 import edu.stanford.slac.ad.eed.baselib.api.v2.dto.*;
+import edu.stanford.slac.ad.eed.baselib.exception.GroupNotFound;
 import edu.stanford.slac.ad.eed.baselib.model.Authorization;
 import edu.stanford.slac.ad.eed.baselib.model.LocalGroup;
 import edu.stanford.slac.ad.eed.baselib.service.AuthService;
@@ -31,6 +32,7 @@ import java.util.List;
 
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @AutoConfigureMockMvc
 @SpringBootTest(properties = {})
@@ -229,5 +231,14 @@ public class LocalGroupTest {
         assertThat(groupFound).isNotNull();
         assertThat(groupFound.size()).isEqualTo(1);
         assertThat(groupFound.get(0).name()).isEqualTo("test-10");
+    }
+
+    @Test
+    public void groupNotFoundReturn404() {
+        var groupFound = assertThrows(
+                GroupNotFound.class,
+                () -> authService.findLocalGroupById("wrong-id")
+        );
+        assertThat(groupFound).isNotNull();
     }
 }
