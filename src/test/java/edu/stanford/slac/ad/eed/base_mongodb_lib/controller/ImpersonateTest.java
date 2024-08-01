@@ -126,7 +126,7 @@ public class ImpersonateTest {
         assertThat(authToken).isNotNull();
         foundAuthenticationTokenModel = authenticationTokenRepository.findById(authToken.getPayload().id());
         assertThat(foundAuthenticationTokenModel).isPresent();
-        assertThat(foundAuthenticationTokenModel.get().getCreatedBy()).isEqualTo("user1@slac.stanford.edu");
+        assertThat(foundAuthenticationTokenModel.get().getCreatedBy()).isEqualTo("user2@slac.stanford.edu");
 
         // now impersonating user3 the operation fails wth not authorized
         var notAuthorizedException = assertThrows(
