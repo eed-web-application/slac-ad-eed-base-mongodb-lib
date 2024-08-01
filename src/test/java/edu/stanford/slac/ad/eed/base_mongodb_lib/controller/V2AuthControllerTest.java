@@ -72,6 +72,7 @@ public class V2AuthControllerTest {
                         mockMvc,
                         status().isOk(),
                         Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty(),
                         AuthorizationGroupManagementDTO
                                 .builder()
                                 .addUsers(List.of("user2@slac.stanford.edu"))
@@ -86,6 +87,7 @@ public class V2AuthControllerTest {
                         mockMvc,
                         status().isOk(),
                         Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty(),
                         List.of("user1@slac.stanford.edu", "user2@slac.stanford.edu")
                 )
         );
@@ -107,6 +109,7 @@ public class V2AuthControllerTest {
                         mockMvc,
                         status().isCreated(),
                         Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty(),
                         NewLocalGroupDTO
                                 .builder()
                                 .name("group1")
@@ -128,6 +131,7 @@ public class V2AuthControllerTest {
                         mockMvc,
                         status().isOk(),
                         Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty(),
                         AuthorizationGroupManagementDTO
                                 .builder()
                                 .addUsers(List.of("user2@slac.stanford.edu"))
@@ -143,6 +147,7 @@ public class V2AuthControllerTest {
                         mockMvc,
                         status().isCreated(),
                         Optional.of("user2@slac.stanford.edu"),
+                        Optional.empty(),
                         NewLocalGroupDTO
                                 .builder()
                                 .name("group1")
@@ -163,6 +168,7 @@ public class V2AuthControllerTest {
                         mockMvc,
                         status().isCreated(),
                         Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty(),
                         NewLocalGroupDTO
                                 .builder()
                                 .name("group1")
@@ -181,6 +187,7 @@ public class V2AuthControllerTest {
                         mockMvc,
                         status().isOk(),
                         Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty(),
                         newGroupResult.getPayload(),
                         UpdateLocalGroupDTO
                                 .builder()
@@ -200,6 +207,7 @@ public class V2AuthControllerTest {
                         mockMvc,
                         status().isOk(),
                         Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty(),
                         newGroupResult.getPayload()
                 )
         );
@@ -222,6 +230,7 @@ public class V2AuthControllerTest {
                             mockMvc,
                             status().isCreated(),
                             Optional.of("user1@slac.stanford.edu"),
+                            Optional.empty(),
                             NewLocalGroupDTO
                                     .builder()
                                     .name("group-%d".formatted(finalI))
@@ -240,6 +249,7 @@ public class V2AuthControllerTest {
                         mockMvc,
                         status().isOk(),
                         Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty(),
                         Optional.empty(),
                         Optional.empty(),
                         Optional.of(10),

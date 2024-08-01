@@ -137,7 +137,8 @@ public class AuthControllerTest {
                 () -> testControllerHelperService.getMe(
                         mockMvc,
                         status().isOk(),
-                        Optional.of("user1@slac.stanford.edu")
+                        Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty()
                 )
         );
 
@@ -164,6 +165,7 @@ public class AuthControllerTest {
                 () -> testControllerHelperService.getMe(
                         mockMvc,
                         status().isUnauthorized(),
+                        Optional.empty(),
                         Optional.empty()
                 )
         );
@@ -179,6 +181,7 @@ public class AuthControllerTest {
                         mockMvc,
                         status().isOk(),
                         Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty(),
                         Optional.of("name")
                 )
         );
@@ -195,6 +198,7 @@ public class AuthControllerTest {
                         mockMvc,
                         status().isOk(),
                         Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty(),
                         Optional.of("Name1")
                 )
         );
@@ -212,6 +216,7 @@ public class AuthControllerTest {
                         mockMvc,
                         status().isOk(),
                         Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty(),
                         Optional.of("Surname1")
                 )
         );
@@ -230,6 +235,7 @@ public class AuthControllerTest {
                         mockMvc,
                         status().isUnauthorized(),
                         Optional.empty(),
+                        Optional.empty(),
                         Optional.of("name")
                 )
         );
@@ -238,22 +244,6 @@ public class AuthControllerTest {
         AssertionsForClassTypes.assertThat(userNotFoundException.getErrorCode()).isEqualTo(-1);
     }
 
-//    @Test
-//    public void findGroupsOK() {
-//        ApiResultResponse<List<GroupDTO>> meResult = assertDoesNotThrow(
-//                () -> testControllerHelperService.findGroups(
-//                        mockMvc,
-//                        status().isOk(),
-//                        Optional.of("user1@slac.stanford.edu"),
-//                        Optional.of("group")
-//                )
-//        );
-//
-//        AssertionsForClassTypes.assertThat(meResult).isNotNull();
-//        AssertionsForClassTypes.assertThat(meResult.getErrorCode()).isEqualTo(0);
-//        assertThat(meResult.getPayload()).hasSize(2);
-//    }
-
     @Test
     public void findGroupsFailUnauthorized() {
         NotAuthorized userNotFoundException = assertThrows(
@@ -261,6 +251,7 @@ public class AuthControllerTest {
                 () -> testControllerHelperService.findGroups(
                         mockMvc,
                         status().isUnauthorized(),
+                        Optional.empty(),
                         Optional.empty(),
                         Optional.of("group")
                 )
@@ -278,6 +269,7 @@ public class AuthControllerTest {
                         mockMvc,
                         status().isBadRequest(),
                         Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty(),
                         NewAuthenticationTokenDTO
                                 .builder()
                                 .build()
@@ -292,6 +284,7 @@ public class AuthControllerTest {
                         mockMvc,
                         status().isBadRequest(),
                         Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty(),
                         NewAuthenticationTokenDTO
                                 .builder()
                                 .name("tok-name")
@@ -307,6 +300,7 @@ public class AuthControllerTest {
                         mockMvc,
                         status().isBadRequest(),
                         Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty(),
                         NewAuthenticationTokenDTO
                                 .builder()
                                 .expiration(LocalDate.of(2023,12,31))
@@ -324,6 +318,7 @@ public class AuthControllerTest {
                         mockMvc,
                         status().isCreated(),
                         Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty(),
                         NewAuthenticationTokenDTO
                                 .builder()
                                 .name("token-a")
@@ -355,6 +350,7 @@ public class AuthControllerTest {
                         mockMvc,
                         status().is5xxServerError(),
                         Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty(),
                         NewAuthenticationTokenDTO
                                 .builder()
                                 .name("token-root-a")
@@ -387,6 +383,7 @@ public class AuthControllerTest {
                         mockMvc,
                         status().isInternalServerError(),
                         Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty(),
                         token.get().id()
                 )
         );
@@ -415,6 +412,7 @@ public class AuthControllerTest {
                         mockMvc,
                         status().isInternalServerError(),
                         Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty(),
                         token.get().id()
                 )
         );
@@ -428,6 +426,7 @@ public class AuthControllerTest {
                         mockMvc,
                         status().isCreated(),
                         Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty(),
                         NewAuthenticationTokenDTO
                                 .builder()
                                 .name("token-a")
@@ -442,6 +441,7 @@ public class AuthControllerTest {
                         mockMvc,
                         status().isCreated(),
                         Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty(),
                         NewAuthenticationTokenDTO
                                 .builder()
                                 .name("token-b")
@@ -455,7 +455,8 @@ public class AuthControllerTest {
                 () -> testControllerHelperService.getAllAuthenticationToken(
                         mockMvc,
                         status().isOk(),
-                        Optional.of("user1@slac.stanford.edu")
+                        Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty()
                 )
         );
         AssertionsForClassTypes.assertThat(allToken.getErrorCode()).isEqualTo(0);
@@ -477,6 +478,7 @@ public class AuthControllerTest {
                         mockMvc,
                         status().isCreated(),
                         Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty(),
                         NewAuthenticationTokenDTO
                                 .builder()
                                 .name("token-a")
@@ -491,6 +493,7 @@ public class AuthControllerTest {
                         mockMvc,
                         status().isCreated(),
                         Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty(),
                         NewAuthenticationTokenDTO
                                 .builder()
                                 .name("token-b")
@@ -504,7 +507,8 @@ public class AuthControllerTest {
                 () -> testControllerHelperService.getAllAuthenticationToken(
                         mockMvc,
                         status().isOk(),
-                        Optional.of("user1@slac.stanford.edu")
+                        Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty()
                 )
         );
         AssertionsForClassTypes.assertThat(allToken.getErrorCode()).isEqualTo(0);
@@ -523,6 +527,7 @@ public class AuthControllerTest {
                         mockMvc,
                         status().isOk(),
                         Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty(),
                         authToken2.getPayload().id()
                 )
         );
@@ -533,7 +538,8 @@ public class AuthControllerTest {
                 () -> testControllerHelperService.getAllAuthenticationToken(
                         mockMvc,
                         status().isOk(),
-                        Optional.of("user1@slac.stanford.edu")
+                        Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty()
                 )
         );
         AssertionsForClassTypes.assertThat(allToken.getErrorCode()).isEqualTo(0);
@@ -555,6 +561,7 @@ public class AuthControllerTest {
                         mockMvc,
                         status().isNotFound(),
                         Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty(),
                         "wrong@user.email"
                 )
         );
@@ -569,6 +576,7 @@ public class AuthControllerTest {
                         mockMvc,
                         status().isCreated(),
                         Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty(),
                         NewAuthenticationTokenDTO
                                 .builder()
                                 .name("token-a")
@@ -583,6 +591,7 @@ public class AuthControllerTest {
                         mockMvc,
                         status().isCreated(),
                         Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty(),
                         authenticationCreationResponse.getPayload().id()
                 )
         );
@@ -593,7 +602,8 @@ public class AuthControllerTest {
                 ()->testControllerHelperService.findAllRootUser(
                         mockMvc,
                         status().isOk(),
-                        Optional.of("user1@slac.stanford.edu")
+                        Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty()
                 )
         );
         AssertionsForClassTypes.assertThat(allRootUseResponse.getErrorCode()).isEqualTo(0);
@@ -607,6 +617,7 @@ public class AuthControllerTest {
                         mockMvc,
                         status().isOk(),
                         Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty(),
                         authenticationCreationResponse.getPayload().id()
                 )
         );
@@ -617,7 +628,8 @@ public class AuthControllerTest {
                 ()->testControllerHelperService.findAllRootUser(
                         mockMvc,
                         status().isOk(),
-                        Optional.of("user1@slac.stanford.edu")
+                        Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty()
                 )
         );
         AssertionsForClassTypes.assertThat(allRootUseResponse.getErrorCode()).isEqualTo(0);
@@ -634,6 +646,7 @@ public class AuthControllerTest {
                         mockMvc,
                         status().isCreated(),
                         Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty(),
                         NewAuthenticationTokenDTO
                                 .builder()
                                 .name("token-a")
@@ -648,6 +661,7 @@ public class AuthControllerTest {
                         mockMvc,
                         status().isCreated(),
                         Optional.of("user1@slac.stanford.edu"),
+                        Optional.empty(),
                         authenticationTokenCreationResponse.getPayload().id()
                 )
         );
@@ -660,6 +674,7 @@ public class AuthControllerTest {
                         mockMvc,
                         status().isCreated(),
                         Optional.of(authenticationTokenCreationResponse.getPayload().id()),
+                        Optional.empty(),
                         NewAuthenticationTokenDTO
                                 .builder()
                                 .name("token-b-made-by-a")
@@ -674,6 +689,7 @@ public class AuthControllerTest {
                         mockMvc,
                         status().isCreated(),
                         Optional.of(authenticationTokenCreationResponse.getPayload().id()),
+                        Optional.empty(),
                         anotherAuthenticationTokenCreationResponse.getPayload().id()
                 )
         );
