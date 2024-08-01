@@ -34,7 +34,8 @@ public class TestControllerHelperService {
     public ApiResultResponse<PersonDetailsDTO> getMe(
             MockMvc mockMvc,
             ResultMatcher resultMatcher,
-            Optional<String> userInfo) throws Exception {
+            Optional<String> userInfo,
+            Optional<String> impersonateUserInfo) throws Exception {
         MockHttpServletRequestBuilder requestBuilder =
                 get("/v1/auth/me")
                         .accept(MediaType.APPLICATION_JSON);
@@ -45,6 +46,7 @@ public class TestControllerHelperService {
                 mockMvc,
                 resultMatcher,
                 userInfo,
+                impersonateUserInfo,
                 requestBuilder
         );
     }
@@ -53,6 +55,7 @@ public class TestControllerHelperService {
             MockMvc mockMvc,
             ResultMatcher resultMatcher,
             Optional<String> userInfo,
+            Optional<String> impersonateUserInfo,
             Optional<String> search) throws Exception {
         MockHttpServletRequestBuilder requestBuilder =
                 get("/v1/auth/users")
@@ -65,6 +68,7 @@ public class TestControllerHelperService {
                 mockMvc,
                 resultMatcher,
                 userInfo,
+                impersonateUserInfo,
                 requestBuilder
         );
     }
@@ -73,6 +77,7 @@ public class TestControllerHelperService {
             MockMvc mockMvc,
             ResultMatcher resultMatcher,
             Optional<String> userInfo,
+            Optional<String> impersonateUserInfo,
             Optional<String> search) throws Exception {
         MockHttpServletRequestBuilder requestBuilder =
                 get("/v1/auth/groups")
@@ -85,6 +90,7 @@ public class TestControllerHelperService {
                 mockMvc,
                 resultMatcher,
                 userInfo,
+                impersonateUserInfo,
                 requestBuilder
         );
     }
@@ -93,6 +99,7 @@ public class TestControllerHelperService {
             MockMvc mockMvc,
             ResultMatcher resultMatcher,
             Optional<String> userInfo,
+            Optional<String> impersonateUserInfo,
             NewAuthenticationTokenDTO newAuthenticationTokenDTO) throws Exception {
         MockHttpServletRequestBuilder requestBuilder =
                 post("/v1/auth/application-token")
@@ -110,6 +117,7 @@ public class TestControllerHelperService {
                 mockMvc,
                 resultMatcher,
                 userInfo,
+                impersonateUserInfo,
                 requestBuilder
         );
     }
@@ -117,7 +125,8 @@ public class TestControllerHelperService {
     public ApiResultResponse<List<AuthenticationTokenDTO>> getAllAuthenticationToken(
             MockMvc mockMvc,
             ResultMatcher resultMatcher,
-            Optional<String> userInfo) throws Exception {
+            Optional<String> userInfo,
+            Optional<String> impersonateUserInfo) throws Exception {
         MockHttpServletRequestBuilder requestBuilder =
                 get("/v1/auth/application-token")
                         .accept(MediaType.APPLICATION_JSON);
@@ -128,6 +137,7 @@ public class TestControllerHelperService {
                 mockMvc,
                 resultMatcher,
                 userInfo,
+                impersonateUserInfo,
                 requestBuilder
         );
     }
@@ -136,6 +146,7 @@ public class TestControllerHelperService {
             MockMvc mockMvc,
             ResultMatcher resultMatcher,
             Optional<String> userInfo,
+            Optional<String> impersonateUserInfo,
             String id) throws Exception {
         MockHttpServletRequestBuilder requestBuilder =
                 delete("/v1/auth/application-token/{id}", id)
@@ -147,6 +158,7 @@ public class TestControllerHelperService {
                 mockMvc,
                 resultMatcher,
                 userInfo,
+                impersonateUserInfo,
                 requestBuilder
         );
     }
@@ -155,6 +167,7 @@ public class TestControllerHelperService {
             MockMvc mockMvc,
             ResultMatcher resultMatcher,
             Optional<String> userInfo,
+            Optional<String> impersonateUserInfo,
             String userEmail) throws Exception {
         MockHttpServletRequestBuilder requestBuilder =
                 post("/v1/auth/root/{email}", userEmail)
@@ -166,6 +179,7 @@ public class TestControllerHelperService {
                 mockMvc,
                 resultMatcher,
                 userInfo,
+                impersonateUserInfo,
                 requestBuilder
         );
     }
@@ -174,6 +188,7 @@ public class TestControllerHelperService {
             MockMvc mockMvc,
             ResultMatcher resultMatcher,
             Optional<String> userInfo,
+            Optional<String> impersonateUserInfo,
             String userEmail) throws Exception {
         MockHttpServletRequestBuilder requestBuilder =
                 delete("/v1/auth/root/{email}", userEmail)
@@ -185,6 +200,7 @@ public class TestControllerHelperService {
                 mockMvc,
                 resultMatcher,
                 userInfo,
+                impersonateUserInfo,
                 requestBuilder
         );
     }
@@ -192,7 +208,8 @@ public class TestControllerHelperService {
     public ApiResultResponse<List<AuthorizationDTO>> findAllRootUser(
             MockMvc mockMvc,
             ResultMatcher resultMatcher,
-            Optional<String> userInfo) throws Exception {
+            Optional<String> userInfo,
+            Optional<String> impersonateUserInfo) throws Exception {
         MockHttpServletRequestBuilder requestBuilder =
                 get("/v1/auth/root")
                         .accept(MediaType.APPLICATION_JSON);
@@ -203,6 +220,7 @@ public class TestControllerHelperService {
                 mockMvc,
                 resultMatcher,
                 userInfo,
+                impersonateUserInfo,
                 requestBuilder
         );
     }
@@ -221,6 +239,7 @@ public class TestControllerHelperService {
             MockMvc mockMvc,
             ResultMatcher resultMatcher,
             Optional<String> userInfo,
+            Optional<String> impersonateUserInfo,
             NewLocalGroupDTO newLocalGroupDTO) throws Exception {
         MockHttpServletRequestBuilder requestBuilder =
                 post("/v2/auth/local/group")
@@ -238,43 +257,11 @@ public class TestControllerHelperService {
                 mockMvc,
                 resultMatcher,
                 userInfo,
+                impersonateUserInfo,
                 requestBuilder
         );
     }
 
-    /**
-     * Delete a local group
-     *
-     * @param mockMvc
-     * @param resultMatcher
-     * @param userInfo
-     * @param localGroupId
-     * @return
-     * @throws Exception
-     */
-    public ApiResultResponse<Boolean> v2AuthorizationControllerDeleteLocalGroup(
-            MockMvc mockMvc,
-            ResultMatcher resultMatcher,
-            Optional<String> userInfo,
-            String localGroupId) throws Exception {
-        MockHttpServletRequestBuilder requestBuilder =
-                delete
-                        (
-                                "/v2/auth/local/group/{localGroupId}",
-                                localGroupId
-                        )
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON);
-        userInfo.ifPresent(login -> requestBuilder.header(appProperties.getUserHeaderName(), jwtHelper.generateJwt(login)));
-        return executeHttpRequest(
-                new TypeReference<>() {
-                },
-                mockMvc,
-                resultMatcher,
-                userInfo,
-                requestBuilder
-        );
-    }
 
     /**
      * Update a local group
@@ -291,6 +278,7 @@ public class TestControllerHelperService {
             MockMvc mockMvc,
             ResultMatcher resultMatcher,
             Optional<String> userInfo,
+            Optional<String> impersonateUserInfo,
             String localGroupId,
             UpdateLocalGroupDTO updateLocalGroupDTO) throws Exception {
         MockHttpServletRequestBuilder requestBuilder =
@@ -313,6 +301,7 @@ public class TestControllerHelperService {
                 mockMvc,
                 resultMatcher,
                 userInfo,
+                impersonateUserInfo,
                 requestBuilder
         );
     }
@@ -334,6 +323,7 @@ public class TestControllerHelperService {
             MockMvc mockMvc,
             ResultMatcher resultMatcher,
             Optional<String> userInfo,
+            Optional<String> impersonateUserInfo,
             Optional<String> anchorId,
             Optional<Integer> contextSize,
             Optional<Integer> limit,
@@ -356,6 +346,7 @@ public class TestControllerHelperService {
                 mockMvc,
                 resultMatcher,
                 userInfo,
+                impersonateUserInfo,
                 requestBuilder
         );
     }
@@ -374,6 +365,7 @@ public class TestControllerHelperService {
             MockMvc mockMvc,
             ResultMatcher resultMatcher,
             Optional<String> userInfo,
+            Optional<String> impersonateUserInfo,
             String localGroupId
     ) throws Exception {
         MockHttpServletRequestBuilder requestBuilder =
@@ -390,6 +382,7 @@ public class TestControllerHelperService {
                 mockMvc,
                 resultMatcher,
                 userInfo,
+                impersonateUserInfo,
                 requestBuilder
         );
     }
@@ -398,6 +391,7 @@ public class TestControllerHelperService {
             MockMvc mockMvc,
             ResultMatcher resultMatcher,
             Optional<String> userInfo,
+            Optional<String> impersonateUserInfo,
             AuthorizationGroupManagementDTO authorizationGroupManagementDTO) throws Exception {
         MockHttpServletRequestBuilder requestBuilder =
                 post
@@ -418,6 +412,7 @@ public class TestControllerHelperService {
                 mockMvc,
                 resultMatcher,
                 userInfo,
+                impersonateUserInfo,
                 requestBuilder
         );
     }
@@ -426,6 +421,7 @@ public class TestControllerHelperService {
             MockMvc mockMvc,
             ResultMatcher resultMatcher,
             Optional<String> userInfo,
+            Optional<String> impersonateUserInfo,
             List<String> userIds) throws Exception {
         MockHttpServletRequestBuilder requestBuilder =
                 get
@@ -443,6 +439,7 @@ public class TestControllerHelperService {
                 mockMvc,
                 resultMatcher,
                 userInfo,
+                impersonateUserInfo,
                 requestBuilder
         );
     }
@@ -452,9 +449,10 @@ public class TestControllerHelperService {
             MockMvc mockMvc,
             ResultMatcher resultMatcher,
             Optional<String> userInfo,
+            Optional<String> impersonateUserInfo,
             MockHttpServletRequestBuilder requestBuilder) throws Exception {
         userInfo.ifPresent(login -> requestBuilder.header(appProperties.getUserHeaderName(), jwtHelper.generateJwt(login)));
-
+        impersonateUserInfo.ifPresent(impersonateUser -> requestBuilder.header(appProperties.getImpersonateHeaderName(), impersonateUser));
         MvcResult result = mockMvc.perform(requestBuilder)
                 .andExpect(resultMatcher)
                 .andReturn();
