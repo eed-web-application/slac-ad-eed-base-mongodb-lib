@@ -1036,7 +1036,7 @@ public class AuthServiceImpl extends AuthService {
         return tempToken.toBuilder()
                 .token(
                         jwtHelper.generateAuthenticationToken(
-                                authTok
+                                tempToken
                         )
                 )
                 .build();
