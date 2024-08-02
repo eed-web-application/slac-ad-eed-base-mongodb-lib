@@ -1016,7 +1016,7 @@ public class AuthServiceImpl extends AuthService {
      * @param newAuthenticationTokenDTO is the new token information
      */
     private AuthenticationToken getAuthenticationToken(NewAuthenticationTokenDTO newAuthenticationTokenDTO, String prefilledEmail, boolean appManaged) {
-        AuthenticationToken authTok = authMapper.toModelGlobalToken(
+        AuthenticationToken authTok = authMapper.toModelApplicationToken(
                 newAuthenticationTokenDTO.toBuilder()
                         .name(
                                 normalizeStringWithReplace(
@@ -1033,7 +1033,7 @@ public class AuthServiceImpl extends AuthService {
                 .email(prefilledEmail != null ? prefilledEmail : authTok.getEmail())
                 .build();
         // generate jwt and return the newly created token
-        return authTok.toBuilder()
+        return tempToken.toBuilder()
                 .token(
                         jwtHelper.generateAuthenticationToken(
                                 authTok
@@ -1091,7 +1091,7 @@ public class AuthServiceImpl extends AuthService {
     /**
      * Delete a token by name along with all his authorization records
      *
-     * @param id the token id
+     * @param tokenId the token id
      */
     @Transactional
     public void deleteToken(String tokenId) {
