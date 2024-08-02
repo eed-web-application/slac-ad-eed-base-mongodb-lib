@@ -17,6 +17,7 @@ edu:
         eed:
           baselib:
             autoload-user-authorizations: false
+            root-authentication-token-list-json: ${ELOG_PLUS_ROOT_AUTHENTICATION_TOKEN_JSON:[{"name":"root-token-1","expiration":"2025-12-31"}]}
             authorized-service-internal-token: account@internal.app1.slac.app$, account@internal.app2.slac.app$
             app-tokken-prefix: ${spring.application.name}
             user-header-name: jwt-header-key

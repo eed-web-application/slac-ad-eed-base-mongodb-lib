@@ -1027,9 +1027,13 @@ public class AuthServiceImpl extends AuthService {
                         )
                         .build()
         );
-        return authTok.toBuilder()
+        // temp token to manage the emil and app managed information that could be fall into the jwt generation
+        var tempToken =  authTok.toBuilder()
                 .applicationManaged(appManaged)
                 .email(prefilledEmail != null ? prefilledEmail : authTok.getEmail())
+                .build();
+        // generate jwt and return the newly created token
+        return authTok.toBuilder()
                 .token(
                         jwtHelper.generateAuthenticationToken(
                                 authTok
