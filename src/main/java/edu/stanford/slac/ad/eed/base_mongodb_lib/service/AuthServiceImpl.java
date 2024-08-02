@@ -18,7 +18,6 @@ import edu.stanford.slac.ad.eed.baselib.service.AuthService;
 import edu.stanford.slac.ad.eed.baselib.service.PeopleGroupService;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -140,7 +139,6 @@ public class AuthServiceImpl extends AuthService {
         );
     }
 
-    @Cacheable(value = "user-authorization", key = "{#owner, #authorizationType, #resourcePrefix}")
     public List<AuthorizationDTO> getAllAuthorizationForOwnerAndAndAuthTypeAndResourcePrefix(
             String owner,
             AuthorizationTypeDTO authorizationType,
@@ -158,14 +156,13 @@ public class AuthServiceImpl extends AuthService {
      * and the authorizations type, if the owner is of type 'User' will be checked for all the
      * entries all along with those that belongs to all the user groups.
      *
-     * @param owner                       si the owner target of the result authorizations
+     * @param ownerId                       si the owner target of the result authorizations
      * @param authorizationType           filter on the @Authorization.Type
      * @param resourcePrefix              is the prefix of the authorized resource
      * @param allHigherAuthOnSameResource return only the higher authorization for each resource
      * @return the list of found resource
      */
     @Override
-    @Cacheable(value = "user-authorization", key = "{#owner, #authorizationType, #resourcePrefix, #allHigherAuthOnSameResource, #includeGroupForUser}")
     public List<AuthorizationDTO> getAllAuthorizationForOwnerAndAndAuthTypeAndResourcePrefix(String ownerId, AuthorizationTypeDTO authorizationType, String resourcePrefix, Optional<Boolean> allHigherAuthOnSameResource, Optional<Boolean> includeGroupForUser) {
         String realOwnerId = returnRealId(ownerId);
         // get user authorizations
@@ -202,7 +199,6 @@ public class AuthServiceImpl extends AuthService {
         }
         return allAuth;
     }
-
 
     @Override
     public List<AuthorizationDTO> getAllAuthenticationForOwner(String owner, AuthorizationOwnerTypeDTO ownerType, String resourcePrefix, Optional<Boolean> allHigherAuthOnSameResource) {
@@ -748,7 +744,7 @@ public class AuthServiceImpl extends AuthService {
                     return null;
                 },
                 -1,
-                "AuthService::addRootAuthorization"
+                "AuthService::removeRootAuthorization"
         );
     }
 
