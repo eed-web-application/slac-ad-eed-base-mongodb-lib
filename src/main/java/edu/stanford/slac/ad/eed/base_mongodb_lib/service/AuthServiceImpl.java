@@ -1012,6 +1012,7 @@ public class AuthServiceImpl extends AuthService {
      * @param newAuthenticationTokenDTO is the new token information
      */
     private AuthenticationToken getAuthenticationToken(NewAuthenticationTokenDTO newAuthenticationTokenDTO, String prefilledEmail, boolean appManaged) {
+        log.info("Create new authentication token with name {}", newAuthenticationTokenDTO.name());
         AuthenticationToken authTok = authMapper.toModelApplicationToken(
                 newAuthenticationTokenDTO.toBuilder()
                         .name(
@@ -1028,13 +1029,12 @@ public class AuthServiceImpl extends AuthService {
                 .applicationManaged(appManaged)
                 .email(prefilledEmail != null ? prefilledEmail : authTok.getEmail())
                 .build();
+        log.info("Generate token for authentication token with name {} with values", newAuthenticationTokenDTO.name(), tempToken);
         // generate jwt and return the newly created token
+        String generatedToken = jwtHelper.generateAuthenticationToken(tempToken);
+        log.info("Generated token for authentication token with name {} is {}", newAuthenticationTokenDTO.name(), generatedToken);
         return tempToken.toBuilder()
-                .token(
-                        jwtHelper.generateAuthenticationToken(
-                                tempToken
-                        )
-                )
+                .token(generatedToken)
                 .build();
     }
 
