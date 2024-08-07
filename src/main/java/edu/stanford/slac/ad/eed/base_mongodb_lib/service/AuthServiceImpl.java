@@ -1300,6 +1300,14 @@ public class AuthServiceImpl extends AuthService {
 
     @Override
     public String createLocalGroup(NewLocalGroupDTO newGroupDTO) {
+        // check for members
+        if(newGroupDTO.members()!=null){
+            // remove duplicates
+            var newList = newGroupDTO.members().stream().distinct().toList();
+            newList.forEach(peopleGroupService::findPersonByEMail);
+            newGroupDTO = newGroupDTO.toBuilder().members(newList).build();
+        }
+        // save group
         LocalGroup localGroup = localGroupMapper.fromDTO(newGroupDTO);
         LocalGroup savedGroup = wrapCatch(
                 () -> localGroupRepository.save(localGroup),
@@ -1321,10 +1329,16 @@ public class AuthServiceImpl extends AuthService {
                         .errorDomain("AuthService::updateLocalGroup")
                         .build()
         );
-
+        // check for members
+        if(updateGroupDTO.members()!=null){
+            var newList = updateGroupDTO.members().stream().distinct().toList();
+            newList.forEach(peopleGroupService::findPersonByEMail);
+            updateGroupDTO = updateGroupDTO.toBuilder().members(newList).build();
+        }
+        UpdateLocalGroupDTO finalUpdateGroupDTO = updateGroupDTO;
         wrapCatch(
                 () -> localGroupRepository.save(
-                        localGroupMapper.updateModel(updateGroupDTO, foundLocalGroup)
+                        localGroupMapper.updateModel(finalUpdateGroupDTO, foundLocalGroup)
                 ),
                 -3
         );
