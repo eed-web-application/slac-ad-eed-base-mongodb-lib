@@ -181,7 +181,7 @@ public class LocalGroupTest {
                                 .builder()
                                 .name("name updated")
                                 .description("description updated")
-                                .members(List.of("user2@slac.stanford.edu", "user2@slac.stanford.edu"))
+                                .members(List.of("user2@slac.stanford.edu", "user3@slac.stanford.edu"))
                                 .build()
                 )
         );
@@ -200,7 +200,7 @@ public class LocalGroupTest {
         assertThat(groupFound.get(0).name()).isEqualTo("name updated");
         assertThat(groupFound.get(0).description()).isEqualTo("description updated");
         assertThat(groupFound.get(0).members().size()).isEqualTo(2);
-        assertThat(groupFound.get(0).members()).extracting("mail").contains("user2@slac.stanford.edu", "user2@slac.stanford.edu");
+        assertThat(groupFound.get(0).members()).extracting("mail").contains("user2@slac.stanford.edu", "user3@slac.stanford.edu");
     }
 
     @Test
