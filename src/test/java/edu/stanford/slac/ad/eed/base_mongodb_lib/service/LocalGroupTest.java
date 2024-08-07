@@ -8,7 +8,9 @@ import edu.stanford.slac.ad.eed.baselib.api.v1.dto.AuthorizationTypeDTO;
 import edu.stanford.slac.ad.eed.baselib.api.v1.dto.NewAuthorizationDTO;
 import edu.stanford.slac.ad.eed.baselib.api.v1.dto.PersonDTO;
 import edu.stanford.slac.ad.eed.baselib.api.v2.dto.*;
+import edu.stanford.slac.ad.eed.baselib.exception.ControllerLogicException;
 import edu.stanford.slac.ad.eed.baselib.exception.GroupNotFound;
+import edu.stanford.slac.ad.eed.baselib.exception.PersonNotFound;
 import edu.stanford.slac.ad.eed.baselib.model.Authorization;
 import edu.stanford.slac.ad.eed.baselib.model.LocalGroup;
 import edu.stanford.slac.ad.eed.baselib.service.AuthService;
@@ -238,6 +240,51 @@ public class LocalGroupTest {
         var groupFound = assertThrows(
                 GroupNotFound.class,
                 () -> authService.findLocalGroupById("wrong-id")
+        );
+        assertThat(groupFound).isNotNull();
+    }
+
+    @Test
+    public void createGroupFailWithBadUserId() {
+        var groupFound = assertThrows(
+                PersonNotFound.class,
+                () -> authService.createLocalGroup(
+                        NewLocalGroupDTO
+                                .builder()
+                                .name("test")
+                                .description("test")
+                                .members(List.of("wrong-id"))
+                                .build()
+                )
+        );
+        assertThat(groupFound).isNotNull();
+    }
+
+    @Test
+    public void modifyGroupFailWithBadUserId() {
+        String groupId = assertDoesNotThrow(
+                () -> authService.createLocalGroup(
+                        NewLocalGroupDTO
+                                .builder()
+                                .name("test")
+                                .description("test")
+                                .members(List.of("user2@slac.stanford.edu", "user2@slac.stanford.edu"))
+                                .build()
+                )
+        );
+        assertThat(groupId).isNotNull();
+
+        var groupFound = assertThrows(
+                PersonNotFound.class,
+                () -> authService.updateLocalGroup(
+                        groupId,
+                        UpdateLocalGroupDTO
+                                .builder()
+                                .name("test")
+                                .description("test")
+                                .members(List.of("wrong-id"))
+                                .build()
+                )
         );
         assertThat(groupFound).isNotNull();
     }
